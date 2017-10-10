@@ -1,0 +1,13 @@
+.button {
+  transition: background-color 0.5s ease;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 5px;
+  border: 1px solid lightgray;
+  background: white;
+}
+
+.button:hover {
+  background: $header-color;
+  border: 1px solid $header-color
+}

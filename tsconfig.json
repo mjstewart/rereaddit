@@ -1,0 +1,32 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist",
+        "sourceMap": true,
+        "module": "commonjs",
+        "target": "es6",
+        "jsx": "react",
+        "strictNullChecks": true,
+        "experimentalDecorators": true,
+        "noImplicitAny": false,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "removeComments": false,
+        "preserveConstEnums": true,
+        "allowSyntheticDefaultImports": false,
+        "baseUrl": "./",
+        "paths": {
+            "@src/*": ["src/*"],
+            "@js/*": ["src/js/*"],
+            "@views/*": ["src/views/*"],
+            "@styles/*": ["src/styles/*"]
+        }
+    },
+    "awesomeTypescriptLoaderOptions": {
+        "useBabel": false,
+        "useCache": false
+    },
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

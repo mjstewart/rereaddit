@@ -1,0 +1,1 @@
+export const GET_CURRENT_TAB_URL = 'GET_CURRENT_TAB_URL';

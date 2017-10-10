@@ -1,0 +1,33 @@
+{
+    "manifest_version": 2,
+    "name": "rereadit",
+    "description": "This extension allows you to view new posts",
+    "version": "1.0",
+    "options_page": "options.html",
+    "background": {
+      "scripts": ["background.js"],
+      "persistant": false
+    },
+    "page_action": {
+      // "default_icon": "icon.png",
+      "default_popup": "popup.html",
+      "default_title": "track unread reddit comments"
+    },
+    "permissions": [
+      "activeTab",
+      "tabs",
+      "storage"
+    ],
+    "content_scripts": [
+      {
+        "matches": ["https://www.reddit.com/r/*/comments/*"],
+        "js": ["comments.js"]
+      }
+      // {
+      //   "matches": ["https://www.reddit.com/r/*"],
+      //   "exclude_matches": ["https://www.reddit.com/r/*/comments/*"],
+      //   // "css": ["styles.css"],
+      //   "js": ["subreddit.js"]
+      // }
+    ]
+  }
