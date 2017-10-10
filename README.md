@@ -1,5 +1,5 @@
 # rereaddit
 
 ## In progress
-Track and manage unread reddit comments
+Chrome extension to track and manage unread reddit comments
 

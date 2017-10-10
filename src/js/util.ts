@@ -1,5 +1,6 @@
-import { APP_NAME } from '@src/config';
 import * as isempty from 'lodash.isempty';
+
+export const APP_NAME = 'rereaddit';
 
 export const isEmpty = (value: {}) => isempty(value);
 

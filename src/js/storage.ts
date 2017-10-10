@@ -5,16 +5,6 @@ import * as has from 'lodash.has';
 // Setting keys used to access storage
 export const unreadCommentHexColour = 'unreadCommentHexColour';
 
-export type Success<T> = {
-  success: T;
-};
-
-export type Failure = {
-  reason: string;
-};
-
-export type DataAccessResult<T> = Success<T> | Failure;
-
 /**
  * Data access interface into chrome storage
  * https://developer.chrome.com/apps/storage
@@ -69,7 +59,7 @@ interface Repository {
    * deleted keys, otherwise false. 
    * On reject - Fail reason.
    */
-  deleteBy(keys: string[]): Promise<boolean>;
+  deleteKeys(keys: string[]): Promise<boolean>;
 }
 
 const getError = (): string | undefined => {
@@ -138,7 +128,7 @@ export class ChromeStorageRepository implements Repository {
     });
   }
 
-  deleteBy(keys: string[]): Promise<boolean> {
+  deleteKeys(keys: string[]): Promise<boolean> {
     return new Promise((resolve, reject) => {
       chrome.storage.sync.remove(keys, () => {
         const error = getError();
@@ -147,9 +137,9 @@ export class ChromeStorageRepository implements Repository {
         } else {
           this.getAllBy(x => true)
             .then((data) => {
-              const removedAllKeys = keys.map(key => has(data, key))
+              const containsDeletedKeys = keys.map(key => has(data, key))
                 .reduce((acc, x) => x && acc, true);
-              resolve(isEmpty(removedAllKeys));
+              resolve(!containsDeletedKeys);
             })
             .catch(vals => resolve(false));
         }

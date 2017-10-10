@@ -173,7 +173,7 @@ describe('ChromeStorageRepository - storage.ts', () => {
       assert.deepEqual(currentStorage, {});
     });
 
-    it('returns true when clearing non empty storage', async () => {
+    it('all data is cleared from non empty storage', async () => {
       const data = { a: 1, b: 2, c: 3 };
       chrome.storage.sync.clear.yields(true);
       chrome.storage.sync.get.yields({});
@@ -187,13 +187,13 @@ describe('ChromeStorageRepository - storage.ts', () => {
     });
   });
 
-  describe('deleteBy', () => {
+  describe('deleteKeys', () => {
     it('rejects promise when error accessing storage', async() => {
       chrome.runtime.lastError = { message: 'error' };
       chrome.storage.sync.remove.yields();
 
       try {
-        const actual = await repository.deleteBy(['key']);
+        const actual = await repository.deleteKeys(['key']);
       } catch (e) {
         assert.strictEqual('error', e);
       }
@@ -201,30 +201,29 @@ describe('ChromeStorageRepository - storage.ts', () => {
       assert.ok(chrome.storage.sync.remove.calledOnce);
     });
 
-    it('returns true when trying to delete key from empty storage', async () => {
+    it('returns true when trying to delete single key from empty storage', async () => {
       const data = {};
-      chrome.storage.sync.remove.yields(true);
+      chrome.storage.sync.remove.yields();
       chrome.storage.sync.get.yields({});
 
-      const actual = await repository.deleteBy(['key']);
-      const currentStorage = await repository.getAllBy(x => true);
+      const actual = await repository.deleteKeys(['key']);
       
       assert.ok(chrome.storage.sync.remove.calledOnce);
       assert.isTrue(actual);
-      assert.deepEqual(currentStorage, {});
     });
 
-    it('returns true when clearing non empty storage', async () => {
+    it('returns true when clearing many keys non empty storage', async () => {
       const data = { a: 1, b: 2, c: 3 };
-      chrome.storage.sync.remove.yields(true);
-      chrome.storage.sync.get.yields({});
+      const expectAfterDelete = { b: 2 };
 
-      const actual = await repository.deleteAll();
+      chrome.storage.sync.remove.yields();
+      chrome.storage.sync.get.yields(expectAfterDelete);
+
+      const actual = await repository.deleteKeys(['a', 'c']);
       const currentStorage = await repository.getAllBy(x => true);
 
       assert.ok(chrome.storage.sync.remove.calledOnce);
       assert.isTrue(actual);
-      assert.deepEqual(currentStorage, {});
     });
   });
 });

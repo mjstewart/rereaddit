@@ -1,1 +1,1 @@
-export const APP_NAME = 're-readdit';
+export const APP_NAME = 'rereaddit';
