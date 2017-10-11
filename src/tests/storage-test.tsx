@@ -1,7 +1,7 @@
 import * as chrome from 'sinon-chrome';
 import { assert } from 'chai';
 import * as mocha from 'mocha';
-import { ChromeStorageRepository } from '@js/storage';
+import { ChromeStorageRepository, getArticleIdFromCommentUrl } from '@js/storage';
 
 declare const global;
 
@@ -225,5 +225,35 @@ describe('ChromeStorageRepository - storage.ts', () => {
       assert.ok(chrome.storage.sync.remove.calledOnce);
       assert.isTrue(actual);
     });
+  });
+});
+
+describe('getUrlForCommentId', () => {
+  it('returns empty string when url is empty', () => {
+    const url = '';
+    const expect = '';
+    const actual = getArticleIdFromCommentUrl(url);
+    assert.strictEqual(actual, expect);
+  });
+
+  it('returns valid article id when there are no query params', () => {
+    const url = 'https://www.reddit.com/r/java/comments/74x9gv/title';
+    const expect = 'comment:74x9gv';
+    const actual = getArticleIdFromCommentUrl(url);
+    assert.strictEqual(actual, expect);
+  });
+
+  it('returns valid article id when there are query params seperated from the title by a /', () => {
+    const url = 'https://www.reddit.com/r/java/comments/75fs3p/title/?utm_content=comments&utm_medium=hot&utm_source=reddit&utm_name=java';
+    const expect = 'comment:75fs3p';
+    const actual = getArticleIdFromCommentUrl(url);
+    assert.strictEqual(actual, expect);
+  });
+
+  it('returns valid article id when there are query params joined with the title', () => {
+    const url = 'https://www.reddit.com/r/java/comments/75fs3p/title?utm_content=comments&utm_medium=hot&utm_source=reddit&utm_name=java';
+    const expect = 'comment:75fs3p';
+    const actual = getArticleIdFromCommentUrl(url);
+    assert.strictEqual(actual, expect);
   });
 });

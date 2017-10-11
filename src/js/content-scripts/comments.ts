@@ -1,4 +1,4 @@
-import { getUrlForCommentId, save, unreadCommentHexColour } from '@js/storage';
+import { getArticleIdFromCommentUrl, save, unreadCommentHexColour } from '@js/storage';
 import { GET_CURRENT_TAB_URL } from '@js/messages';
 import { isEmpty, log, logWithPayload } from '@js/util';
 
@@ -27,7 +27,7 @@ type GetResult = {
 
 window.addEventListener('load', () => {
   chrome.runtime.sendMessage(GET_CURRENT_TAB_URL, (currentUrl: string) => {
-    const urlId = getUrlForCommentId(currentUrl);
+    const urlId = getArticleIdFromCommentUrl(currentUrl);
   
     log(`comments.ts urlId ${urlId}`);
   

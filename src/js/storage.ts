@@ -25,7 +25,7 @@ interface Repository {
    * usage:
    * get(['firstname', 'address']) => { firstname: bob, address: 1 smith street }
    * 
-   * On resolve - The saved payload.
+   * On resolve - Object with the query keys populated with values.
    * On reject - Fail reason.
    */
   get(keys: string | string[]): Promise<{ [key: string]: any }>;
@@ -164,20 +164,21 @@ export const clear = () => chrome.storage.sync.clear(() => {
 });
 
 /**
- * Given a url such as 'https://www.reddit.com/r/java/comments/74x9gv/title?queryParams'. 
- * The dervived id is the hash and title after the comments joined together = 74x9gvtitle.
+ * Given a url such as 'https://www.reddit.com/r/java/comments/74x9gv/title?queryParams'.
  * 
- * This is used as the key in storage api.
+ * reddit api - GET [/r/subreddit]/comments/article
+ * 
+ * This function returns the article id of 74x9gv.
+ * An id is created in the form of 'comment:74x9gv to allow querying the store for comment keys only.
  * 
  * @param url
  * @return The derived id otherwise an empty string.
  */
-export const getUrlForCommentId = (url: string) => {
-  log(`storage.ts getUrlForCommentId url=${url}`);
+export const getArticleIdFromCommentUrl = (url: string) => {
   if (url === '') return '';
   const tokens = url.split('/');
   const index = tokens.indexOf('comments') + 1;
-  return tokens.slice(index, index + 2).join('');
+  return `comment:${tokens.slice(index, index + 1)[0]}`;
 };
 
 
