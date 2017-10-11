@@ -1,12 +1,11 @@
 import * as chrome from 'sinon-chrome';
 import { assert } from 'chai';
 import * as mocha from 'mocha';
-import { ChromeStorageRepository, getArticleIdFromCommentUrl } from '@js/storage';
+import { repository, getArticleIdFromCommentUrl } from '@js/storage';
 
 declare const global;
 
 describe('ChromeStorageRepository - storage.ts', () => {
-  const repository = new ChromeStorageRepository();
 
   before(() => {
     global.chrome = chrome;
@@ -106,7 +105,7 @@ describe('ChromeStorageRepository - storage.ts', () => {
       chrome.storage.sync.get.yields(data);
 
       try {
-        const actual = await repository.getAllBy(key => true);
+        const actual = await repository.get('key');
       } catch (e) {
         assert.strictEqual('error', e);
       }
@@ -118,7 +117,7 @@ describe('ChromeStorageRepository - storage.ts', () => {
       const data = {};
       chrome.storage.sync.get.yields(data);
 
-      const actual = await repository.get('key');
+      const actual = await repository.get<{}>('key');
       assert.ok(chrome.storage.sync.get.calledOnce);
       assert.deepEqual(actual, {});
     });
@@ -126,10 +125,14 @@ describe('ChromeStorageRepository - storage.ts', () => {
     it('returns single value when single string key is provided and storage is non empty', async () => {
       const data = { a: 1, b: 2, c: 3 };
       const expect = { a: 1 };
+      type Expect = {
+        a: number;
+      };
+
       chrome.storage.sync.get.yields(expect);
 
-      const actual = await repository.get('a');
-      
+      const actual = await repository.get<Expect>('a');
+    
       assert.ok(chrome.storage.sync.get.calledOnce);
       assert.deepEqual(actual, expect);
     });
@@ -137,9 +140,13 @@ describe('ChromeStorageRepository - storage.ts', () => {
     it('returns multiple values when array of keys is provided and storage is non empty', async () => {
       const data = { a: 1, b: 2, c: 3 };
       const expect = { a: 1, b: 2 };
+      type Expect = {
+        a: number;
+        b: number;
+      };
       chrome.storage.sync.get.yields(expect);
 
-      const actual = await repository.get(['a', 'b']);
+      const actual = await repository.get<Expect>(['a', 'b']);
       
       assert.ok(chrome.storage.sync.get.calledOnce);
       assert.deepEqual(actual, expect);

@@ -1,9 +1,32 @@
 import { GET_CURRENT_TAB_URL } from '@js/messages';
-import { log, logWithPayload } from '@js/util';
-
+import { log, logWithPayload } from '@js/logging';
+import { repository } from '@js/storage';
+import * as isempty from 'lodash.isempty';
+import {
+  settingKeys,
+  makeDefaultUnreadColorSetting,
+  StorageType,
+} from '@js/settings';
+ 
 chrome.storage.sync.get(null, (store) => {
   logWithPayload('background.js get full store', store);
 });
+
+/**
+ * The first time the extension loads, default settings are saved, otherwise nothing
+ * happens and existing settings are used.
+ */
+(async function initSettings() {
+  try {
+    const unreadCommentColor = await repository.get([settingKeys.unreadCommentColor]);
+    if (isempty(unreadCommentColor)) {
+      await repository.save(makeDefaultUnreadColorSetting());
+    }
+  } catch (e) {
+    log(e);
+  }
+})();
+
 
 /**
  * Content scripts can send messages to the background task which has special priviledges.

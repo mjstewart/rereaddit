@@ -1,6 +1,12 @@
-import { getArticleIdFromCommentUrl, save, unreadCommentHexColour } from '@js/storage';
 import { GET_CURRENT_TAB_URL } from '@js/messages';
-import { isEmpty, log, logWithPayload } from '@js/util';
+import { log, logWithPayload } from '@js/logging';
+import * as isempty from 'lodash.isempty';
+import {
+  getArticleIdFromCommentUrl,
+  repository,
+  save,
+  unreadCommentHexColour,
+} from '@js/storage';
 
 type CommentEntry = {
   urlId: string,
@@ -25,31 +31,48 @@ type GetResult = {
   unreadCommentHexColor: string,
 };
 
+async function highlightUnreadComments(currentUrl: string) {
+  const articleId = getArticleIdFromCommentUrl(currentUrl);
+  try {
+    const result = await repository.get([articleId, unreadCommentHexColour]);
+    console.log('highlightUnreadComments results');
+    console.log(result);    
+  } catch (e) {
+
+  }
+}
+
+window.addEventListener('load', () => {
+  // content script doesn't have access to tab privileges.
+  chrome.runtime.sendMessage(GET_CURRENT_TAB_URL, highlightUnreadComments);
+});
+
+
 window.addEventListener('load', () => {
   chrome.runtime.sendMessage(GET_CURRENT_TAB_URL, (currentUrl: string) => {
     const urlId = getArticleIdFromCommentUrl(currentUrl);
-  
+
     log(`comments.ts urlId ${urlId}`);
-  
+
     // need to store the commentId as the actual key, not urlId as urlId gets overridden.
     chrome.storage.sync.get({ urlId, unreadCommentHexColour }, (result: GetResult) => {
       if (!result) return;
-  
+
       logWithPayload('comments.ts get result', result);
-  
-      if (isEmpty(result)) {
+
+      if (isempty(result)) {
         // First time viewing thread, save timestamp so future posts can be identified.
         save(createLastViewedEntry(urlId));
         return;
       }
-  
+
       const lastViewedTime = new Date(result.lastViewedTime);
       const comments = document.getElementsByClassName('comment');
-  
+
       for (let i = 0; i < comments.length; i = i + 1) {
         const comment = comments[i];
         const commentTime = new Date(comment.querySelector('time')!.getAttribute('datetime')!);
-  
+
         // if root comment is newer, all descendents will be newer too.
         // if (commentTime > lastViewedTime) {
         //   comment.querySelectorAll('.usertext-body').forEach((child: HTMLElement) => {
@@ -62,9 +85,9 @@ window.addEventListener('load', () => {
           child.onclick = removeBackgroundStyle(child);
         });
       }
-  
+
       // Update timestamp as its assumed user has now read all new posts.
       save(createLastViewedEntry(urlId));
     });
-  });  
+  });
 });

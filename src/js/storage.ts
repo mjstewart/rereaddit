@@ -1,5 +1,6 @@
-import { logIfError, log, logWithPayload, isEmpty } from '@js/util';
-import * as pickBy from 'lodash.pickby';
+import { logIfError, log, logWithPayload } from '@js/logging';
+import * as pickby from 'lodash.pickby';
+import * as isempty from 'lodash.isempty';
 import * as has from 'lodash.has';
 
 // Setting keys used to access storage
@@ -20,7 +21,7 @@ interface Repository {
   save<T extends {}>(payload: T): Promise<T>;
 
   /**
-   * Get by single key or many keys.
+   * Get by single key or many keys. The result will be cast into T.
    * 
    * usage:
    * get(['firstname', 'address']) => { firstname: bob, address: 1 smith street }
@@ -28,7 +29,7 @@ interface Repository {
    * On resolve - Object with the query keys populated with values.
    * On reject - Fail reason.
    */
-  get(keys: string | string[]): Promise<{ [key: string]: any }>;
+  get<T>(keys: string | string[]): Promise<T>;
 
   /**
    * Get all items where the item key matches the supplied predicate.
@@ -72,7 +73,7 @@ const getError = (): string | undefined => {
   return undefined;
 };
 
-export class ChromeStorageRepository implements Repository {
+class ChromeStorageRepository implements Repository {
   save<T extends {}>(payload: T): Promise<T> {
     return new Promise((resolve, reject) => {
       chrome.storage.sync.set(payload, () => {
@@ -86,14 +87,14 @@ export class ChromeStorageRepository implements Repository {
     });
   }
 
-  get(keys: string | string[]): Promise<{ [key: string]: any; }> {
+  get<T>(keys: string | string[]): Promise<T> {
     return new Promise((resolve, reject) => {
       chrome.storage.sync.get(keys, (result) => {
         const error = getError();
         if (error) {
           reject(error);
         } else {
-          resolve(result);
+          resolve(result as T);
         }
       });
     });
@@ -106,7 +107,7 @@ export class ChromeStorageRepository implements Repository {
         if (error) {
           reject(error);
         } else {
-          const filteredObject = pickBy(results, (v, k) => predicate(k));
+          const filteredObject = pickby(results, (v, k) => predicate(k));
           resolve(filteredObject);
         }
       });
@@ -121,7 +122,7 @@ export class ChromeStorageRepository implements Repository {
           reject(error);
         } else {
           this.getAllBy(x => true)
-            .then(vals => resolve(isEmpty(vals)))
+            .then(vals => resolve(isempty(vals)))
             .catch(vals => resolve(false));
         }
       });
@@ -182,3 +183,4 @@ export const getArticleIdFromCommentUrl = (url: string) => {
 };
 
 
+export const repository = new ChromeStorageRepository();

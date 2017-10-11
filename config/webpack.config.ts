@@ -14,7 +14,7 @@ const config: CustomWebpackConfig = {
   // devtool: 'cheap-module-eval-source-map',
   devtool: 'source-map',
   entry: {
-    options: path.join(paths.JS, 'options.ts'),
+    options: path.join(paths.VIEWS, 'options/index.tsx'),
     popup: path.join(paths.VIEWS, 'popup/index.tsx'),
     background: path.join(paths.JS, 'background.ts'),
     comments: path.join(paths.JS, 'content-scripts', 'comments.ts'),
@@ -60,7 +60,7 @@ const config: CustomWebpackConfig = {
       LOGGING: JSON.stringify(true),
     }),
     new HtmlWebpackPlugin({
-      template: path.join(paths.VIEWS, 'options.html'),
+      template: path.join(paths.VIEWS, 'options/options.html'),
       filename: 'options.html',
       chunks: ['options'], // This says to only include the options.js script tag in options.html.
     }),

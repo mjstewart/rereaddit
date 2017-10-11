@@ -1,8 +1,4 @@
-import * as isempty from 'lodash.isempty';
-
 export const APP_NAME = 'rereaddit';
-
-export const isEmpty = (value: {}) => isempty(value);
 
 export const logIfError = (message: string) => {
   if (chrome.runtime.lastError && process.env.LOGGING) {
