@@ -1,14 +1,13 @@
-require('./options.scss');
 const githubLogo = require('@src/img/GitHub-Mark-32px.png');
 
 import * as React from 'react';
 import { Grid, Header, Container, Icon, Form, Button } from 'semantic-ui-react';
-import { repository } from '@js/storage';
+import { repository, StorageType } from '@js/storage';
 import * as logging from '@js/logging';
-import ErrorModal from '@views/ErrorModal';
+import StatusModal from '@views/modals/StatusModal';
 import {
+  APP_SLOGAN,
   settingKeys,
-  StorageType,
   UnreadCommentColor,
   makeUnreadColorSetting,
   DEFAULT_UNREAD_COMMENT_COLOUR,
@@ -46,11 +45,13 @@ class OptionsHome extends React.Component<{}, State> {
    */
   onUnreadCommentColorChange = (event) => {
     const color = event.target.value;
-    logging.logWithPayload('onUnreadCommentColorChange: saving new value', makeUnreadColorSetting(color));
 
     repository.save(makeUnreadColorSetting(color))
-      .then(saved => this.setState({ unreadCommentColor: color }))
+      .then((saved) => {
+        this.setState({ unreadCommentColor: color });
+      })
       .catch(() => this.setState({ error: 'Error saving to storage' }));
+
   };
 
   /**
@@ -62,14 +63,12 @@ class OptionsHome extends React.Component<{}, State> {
         this.setState({
           unreadCommentColor: DEFAULT_UNREAD_COMMENT_COLOUR,
         });
-        logging.logWithPayload('onRestoreDefaults state', this.state);
       })
       .catch(() => this.setState({ error: 'Error saving to storage' }));
   };
 
   onErrorModalClose = () => {
     this.setState({ error: undefined });
-    logging.logWithPayload('onErrorModalClose state', this.state);
   }
 
   getContent = () => (
@@ -78,8 +77,8 @@ class OptionsHome extends React.Component<{}, State> {
         <Header as="h1" textAlign="center">
           rereaddit extension settings
         <Header.Subheader className="italic">
-            Track and manage unread reddit comments
-        </Header.Subheader>
+            {APP_SLOGAN}
+          </Header.Subheader>
 
           <a href="https://github.com/mjstewart/rereaddit">
             <img src={githubLogo} alt="GitHub Logo" />
@@ -89,7 +88,7 @@ class OptionsHome extends React.Component<{}, State> {
 
       <Container>
         <Container textAlign="center">
-          <Button negative size="tiny" onClick={this.onRestoreDefaults}>Restore Defaults</Button>
+          <Button basic color="red" size="tiny" onClick={this.onRestoreDefaults}>Restore Defaults</Button>
         </Container>
         <Header as="h3" dividing>
           General
@@ -108,8 +107,9 @@ class OptionsHome extends React.Component<{}, State> {
     return (
       <div className="wrapper">
         {this.state.error ?
-          <ErrorModal
-            errorMessage={this.state.error}
+          <StatusModal
+            type={'error'}
+            message={this.state.error}
             onClose={this.onErrorModalClose} />
           : this.getContent()}
       </div>

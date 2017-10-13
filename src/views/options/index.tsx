@@ -1,3 +1,4 @@
+require('./options.scss');
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import OptionsHome from '@views/options/OptionsHome';

@@ -5,20 +5,34 @@ interface State {
   open: boolean;
 }
 
+type ModalType = 'success' | 'error';
+
 interface Props {
-  errorMessage: string;
+  message: string;
+  type: ModalType;
 
   /**
    * Notify that modal is closing incase parent needs to perform
-   * and closing down operations.
+   * any closing down operations.
    */
   onClose: () => void;
 }
 
+type Setting = {
+  color: 'red' | 'green',
+  title: string,
+};
+
 class ErrorModal extends React.Component<Props, State> {
 
-  constructor(props) {   
+  private settings: Map<ModalType, Setting> = new Map<ModalType, Setting>([
+    ['success', { color: 'green', title: 'Success' }],
+    ['error', { color: 'red', title: 'Error' }],
+  ]);
+
+  constructor(props) {
     super(props);
+    const x = this.settings.get('success')!;
 
     this.state = {
       open: true,
@@ -36,14 +50,14 @@ class ErrorModal extends React.Component<Props, State> {
     return (
       <Modal size="mini" open={this.state.open} onClose={this.onClose}>
         <Modal.Header>
-          <Header as="h2" color="red">
+          <Header as="h2" color={this.settings.get(this.props.type)!.color}>
             <Header.Content>
-              Error
+              {this.settings.get(this.props.type)!.title}
             </Header.Content>
           </Header>
         </Modal.Header>
         <Modal.Content>
-          <p>{this.props.errorMessage}</p>
+          <p>{this.props.message}</p>
         </Modal.Content>
         <Modal.Actions>
           <Button onClick={this.onClose}>

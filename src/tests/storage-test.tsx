@@ -1,9 +1,14 @@
 import * as chrome from 'sinon-chrome';
 import { assert } from 'chai';
 import * as mocha from 'mocha';
-import { repository, getArticleIdFromCommentUrl } from '@js/storage';
+import { repository, getArticleIdFromCommentUrl, StorageType } from '@js/storage';
 
 declare const global;
+
+const makeTestPayload = value => ({
+  value,
+  type: StorageType.COMMENT,
+});
 
 describe('ChromeStorageRepository - storage.ts', () => {
 
@@ -21,9 +26,9 @@ describe('ChromeStorageRepository - storage.ts', () => {
   });
 
   describe('save', () => {
-    it('rejects promise when error accessing storage', async() => {
+    it('rejects promise when error accessing storage', async () => {
       chrome.runtime.lastError = { message: 'error' };
-      const savePayload = { a: 1 };
+      const savePayload = { a: { value: 1, type: StorageType.COMMENT } };
       chrome.storage.sync.set.yields();
 
       try {
@@ -34,13 +39,13 @@ describe('ChromeStorageRepository - storage.ts', () => {
 
       assert.ok(chrome.storage.sync.set.calledOnce);
     });
-    
-    it('saves successfully and returns the original payload', async() => {
-      const savePayload = { a: 1 };
+
+    it('saves successfully and returns the original payload', async () => {
+      const savePayload = { a: { value: 1, type: StorageType.COMMENT } };
       chrome.storage.sync.set.yields();
 
       const actual = await repository.save(savePayload);
-      
+
       assert.deepEqual(savePayload, actual);
       assert.ok(chrome.storage.sync.set.calledOnce);
     });
@@ -48,13 +53,17 @@ describe('ChromeStorageRepository - storage.ts', () => {
 
   describe('getAllBy', () => {
     it('rejects promise when error accessing storage', async () => {
-      const data = { a: 1, b: 2, c: 3 };
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+      };
 
       chrome.runtime.lastError = { message: 'error' };
       chrome.storage.sync.get.yields(data);
 
       try {
-        const actual = await repository.getAllBy(key => true);
+        const actual = await repository.getAllBy((key, type) => true);
       } catch (e) {
         assert.strictEqual('error', e);
       }
@@ -66,30 +75,92 @@ describe('ChromeStorageRepository - storage.ts', () => {
       const data = {};
       chrome.storage.sync.get.yields(data);
 
-      const actual = await repository.getAllBy(key => true);
+      const actual = await repository.getAllBy((key, type) => true);
 
       assert.ok(chrome.storage.sync.get.calledOnce);
       assert.isEmpty(actual);
     });
 
     it('returns all data in non empty storage', async () => {
-      const data = { a: 1, b: 2, c: 3 };
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.SETTING },
+        c: { value: 3, type: StorageType.COMMENT },
+        d: { value: 4, type: StorageType.COMMENT },
+        e: { value: 5, type: StorageType.SETTING },
+      };
       chrome.storage.sync.get.yields(data);
 
-      const actual = await repository.getAllBy(key => true);
+      const actual = await repository.getAllBy((key, type) => true);
 
       assert.ok(chrome.storage.sync.get.calledOnce);
       assert.deepEqual(data, actual);
     });
 
-    it('returns data that matches predicate', async () => {
-      const data = { a: 1, b: 2, c: 3 };
-      const expect = { a: 1, c: 3 };
+    it('returns data that matches predicate key only', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.SETTING },
+        c: { value: 3, type: StorageType.COMMENT },
+        d: { value: 4, type: StorageType.COMMENT },
+        e: { value: 5, type: StorageType.SETTING },
+      };
+      const expect = {
+        a: { value: 1, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+      };
 
       chrome.storage.sync.get.yields(data);
 
-      const actual = await repository.getAllBy((key) => {
+      const actual = await repository.getAllBy((key, type) => {
         return key === 'a' || key === 'c';
+      });
+
+      assert.ok(chrome.storage.sync.get.calledOnce);
+      assert.deepEqual(actual, expect);
+    });
+
+    it('returns data that matches predicate value StorageType', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.SETTING },
+        c: { value: 3, type: StorageType.COMMENT },
+        d: { value: 4, type: StorageType.COMMENT },
+        e: { value: 5, type: StorageType.SETTING },
+      };
+      const expect = {
+        b: { value: 2, type: StorageType.SETTING },
+        e: { value: 5, type: StorageType.SETTING },
+      };
+
+      chrome.storage.sync.get.yields(data);
+
+      const actual = await repository.getAllBy((key, type) => {
+        return type === StorageType.SETTING;
+      });
+
+      assert.ok(chrome.storage.sync.get.calledOnce);
+      assert.deepEqual(actual, expect);
+    });
+
+    it('returns data that matches predicate key and value StorageType', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.SETTING },
+        c: { value: 3, type: StorageType.COMMENT },
+        d: { value: 4, type: StorageType.COMMENT },
+        e: { value: 5, type: StorageType.SETTING },
+      };
+      const expect = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.SETTING },
+        e: { value: 5, type: StorageType.SETTING },
+      };
+
+      chrome.storage.sync.get.yields(data);
+
+      const actual = await repository.getAllBy((key, type) => {
+        return key === 'a' || type === StorageType.SETTING;
       });
 
       assert.ok(chrome.storage.sync.get.calledOnce);
@@ -97,9 +168,60 @@ describe('ChromeStorageRepository - storage.ts', () => {
     });
   });
 
+  describe('getAll', () => {
+    it('rejects promise when error accessing storage', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+      };
+
+      chrome.runtime.lastError = { message: 'error' };
+      chrome.storage.sync.get.yields(data);
+
+      try {
+        const actual = await repository.getAll();
+      } catch (e) {
+        assert.strictEqual('error', e);
+      }
+
+      assert.ok(chrome.storage.sync.get.calledOnce);
+    });
+
+    it('returns empty object when storage is empty', async () => {
+      const data = {};
+      chrome.storage.sync.get.yields(data);
+
+      const actual = await repository.getAll();
+
+      assert.ok(chrome.storage.sync.get.calledOnce);
+      assert.isEmpty(actual);
+    });
+
+    it('returns all data in non empty storage', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.SETTING },
+        c: { value: 3, type: StorageType.COMMENT },
+        d: { value: 4, type: StorageType.COMMENT },
+        e: { value: 5, type: StorageType.SETTING },
+      };
+      chrome.storage.sync.get.yields(data);
+
+      const actual = await repository.getAll();
+
+      assert.ok(chrome.storage.sync.get.calledOnce);
+      assert.deepEqual(data, actual);
+    });
+  });
+
   describe('get', () => {
     it('rejects promise when error accessing storage', async () => {
-      const data = { a: 1, b: 2, c: 3 };
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+      };
 
       chrome.runtime.lastError = { message: 'error' };
       chrome.storage.sync.get.yields(data);
@@ -122,39 +244,51 @@ describe('ChromeStorageRepository - storage.ts', () => {
       assert.deepEqual(actual, {});
     });
 
-    it('returns single value when single string key is provided and storage is non empty', async () => {
-      const data = { a: 1, b: 2, c: 3 };
-      const expect = { a: 1 };
+    it('returns single result when single key is provided and storage is non empty', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+      };
+      const expect = { a: { value: 1, type: StorageType.COMMENT } };
+
       type Expect = {
-        a: number;
+        a: { value: number, type: StorageType.COMMENT };
       };
 
       chrome.storage.sync.get.yields(expect);
 
       const actual = await repository.get<Expect>('a');
-    
+
       assert.ok(chrome.storage.sync.get.calledOnce);
       assert.deepEqual(actual, expect);
     });
 
-    it('returns multiple values when array of keys is provided and storage is non empty', async () => {
-      const data = { a: 1, b: 2, c: 3 };
-      const expect = { a: 1, b: 2 };
+    it('returns multiple results when array of keys is provided and storage is non empty', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+      };
+      const expect = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+      };
       type Expect = {
-        a: number;
-        b: number;
+        a: { value: number, type: StorageType.COMMENT };
+        b: { value: number, type: StorageType.COMMENT };
       };
       chrome.storage.sync.get.yields(expect);
 
       const actual = await repository.get<Expect>(['a', 'b']);
-      
+
       assert.ok(chrome.storage.sync.get.calledOnce);
       assert.deepEqual(actual, expect);
     });
   });
 
   describe('deleteAll', () => {
-    it('rejects promise when error accessing storage', async() => {
+    it('rejects promise when error accessing storage', async () => {
       chrome.runtime.lastError = { message: 'error' };
       chrome.storage.sync.clear.yields();
 
@@ -169,11 +303,11 @@ describe('ChromeStorageRepository - storage.ts', () => {
 
     it('returns true when trying to clear empty storage', async () => {
       const data = {};
-      chrome.storage.sync.clear.yields(true);
+      chrome.storage.sync.clear.yields();
       chrome.storage.sync.get.yields({});
 
       const actual = await repository.deleteAll();
-      const currentStorage = await repository.getAllBy(x => true);
+      const currentStorage = await repository.getAll();
 
       assert.ok(chrome.storage.sync.clear.calledOnce);
       assert.isTrue(actual);
@@ -181,12 +315,16 @@ describe('ChromeStorageRepository - storage.ts', () => {
     });
 
     it('all data is cleared from non empty storage', async () => {
-      const data = { a: 1, b: 2, c: 3 };
-      chrome.storage.sync.clear.yields(true);
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+      };
+      chrome.storage.sync.clear.yields();
       chrome.storage.sync.get.yields({});
 
       const actual = await repository.deleteAll();
-      const currentStorage = await repository.getAllBy(x => true);
+      const currentStorage = await repository.getAll();
 
       assert.ok(chrome.storage.sync.clear.calledOnce);
       assert.isTrue(actual);
@@ -195,7 +333,7 @@ describe('ChromeStorageRepository - storage.ts', () => {
   });
 
   describe('deleteKeys', () => {
-    it('rejects promise when error accessing storage', async() => {
+    it('rejects promise when error accessing storage', async () => {
       chrome.runtime.lastError = { message: 'error' };
       chrome.storage.sync.remove.yields();
 
@@ -214,26 +352,58 @@ describe('ChromeStorageRepository - storage.ts', () => {
       chrome.storage.sync.get.yields({});
 
       const actual = await repository.deleteKeys(['key']);
-      
+
       assert.ok(chrome.storage.sync.remove.calledOnce);
       assert.isTrue(actual);
     });
 
-    it('returns true when clearing many keys non empty storage', async () => {
-      const data = { a: 1, b: 2, c: 3 };
-      const expectAfterDelete = { b: 2 };
+    it('returns true when all deleted keys are actually removed from non empty storage', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+      };
+      const expectAfterDelete = {
+        b: { value: 2, type: StorageType.COMMENT },
+      };
 
       chrome.storage.sync.remove.yields();
       chrome.storage.sync.get.yields(expectAfterDelete);
 
       const actual = await repository.deleteKeys(['a', 'c']);
-      const currentStorage = await repository.getAllBy(x => true);
+      const currentStorage = await repository.getAll();
 
       assert.ok(chrome.storage.sync.remove.calledOnce);
       assert.isTrue(actual);
     });
+
+    it('returns false when not all requested keys have been deleted from non empty storage', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+      };
+
+      // request to delete a and c, but c is still in storage for whatever reason.
+      const expectAfterDelete = {
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+      };
+
+      chrome.storage.sync.remove.yields();
+      chrome.storage.sync.get.yields(expectAfterDelete);
+
+      const actual = await repository.deleteKeys(['a', 'c']);
+      const currentStorage = await repository.getAll();
+
+      assert.ok(chrome.storage.sync.remove.calledOnce);
+      assert.isFalse(actual);
+    });
   });
 });
+
+
+
 
 describe('getUrlForCommentId', () => {
   it('returns empty string when url is empty', () => {
@@ -245,21 +415,21 @@ describe('getUrlForCommentId', () => {
 
   it('returns valid article id when there are no query params', () => {
     const url = 'https://www.reddit.com/r/java/comments/74x9gv/title';
-    const expect = 'comment:74x9gv';
+    const expect = '74x9gv';
     const actual = getArticleIdFromCommentUrl(url);
     assert.strictEqual(actual, expect);
   });
 
   it('returns valid article id when there are query params seperated from the title by a /', () => {
     const url = 'https://www.reddit.com/r/java/comments/75fs3p/title/?utm_content=comments&utm_medium=hot&utm_source=reddit&utm_name=java';
-    const expect = 'comment:75fs3p';
+    const expect = '75fs3p';
     const actual = getArticleIdFromCommentUrl(url);
     assert.strictEqual(actual, expect);
   });
 
   it('returns valid article id when there are query params joined with the title', () => {
     const url = 'https://www.reddit.com/r/java/comments/75fs3p/title?utm_content=comments&utm_medium=hot&utm_source=reddit&utm_name=java';
-    const expect = 'comment:75fs3p';
+    const expect = '75fs3p';
     const actual = getArticleIdFromCommentUrl(url);
     assert.strictEqual(actual, expect);
   });

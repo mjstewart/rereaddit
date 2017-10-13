@@ -1,10 +1,35 @@
-import { logIfError, log, logWithPayload } from '@js/logging';
+import * as logging from '@js/logging';
 import * as pickby from 'lodash.pickby';
 import * as isempty from 'lodash.isempty';
 import * as has from 'lodash.has';
+import { Message } from '@js/messages';
+ 
 
-// Setting keys used to access storage
-export const unreadCommentHexColour = 'unreadCommentHexColour';
+/**
+  * Example storage structure
+  
+  {
+  "75odv7": {
+    "articleId": "75odv7",
+    "lastViewedTime": "Thu Oct 12 2017 17:38:41 GMT+1030 (Cen. Australia Daylight Time)",
+    "tagline": "submitted 19 hours ago by user",
+    "title": "some title",
+    "type": "COMMENT"
+  },
+  "unreadCommentColor": {
+    "color": "#B3ECB7",
+    "type": "SETTING"
+  }
+ }
+ */
+
+/**
+ * Types of data stored to allow querying / filtering.
+ */
+export enum StorageType {
+  SETTING = 'SETTING',
+  COMMENT = 'COMMENT',
+}
 
 /**
  * Data access interface into chrome storage
@@ -32,18 +57,36 @@ interface Repository {
   get<T>(keys: string | string[]): Promise<T>;
 
   /**
-   * Get all items where the item key matches the supplied predicate.
-   * For each item retrieved from storage, the items property is the key that gets
-   * passed in to the predicate.
+   * Delegates to getAllBy with the predicate(key, value.type) => true.
+   */
+  getAll(): Promise<{ [key: string]: any }>;
+
+  /**
+   * Get all entries matching the supplied predicate.
+   * 
+   * Every value in storage has a StorageType field used for filtering.
+   * The predicate gets passed in the key and StorageType which the caller can use to decide
+   * if the item should be included in the final result.
+   * 
+   * for each (key, value) pair in storage { 
+   *    if (predicate(key, value.type)) {
+   *       return pair
+   *    }
+   * }
    * 
    * usage:
-   * {a: 1, b: 2, c:3 } 
-   * getAllBy(key => key === 'a') => {a: 1}
+   * { 
+   *   a: { value: 1, type: StorageType.COMMENT },
+   *   b: { value: 2, type: StorageType.COMMENT },
+   *   c: { value: 3, type: StorageType.COMMENT }
+   * }
+   * 
+   * getAllBy((key, type) => key === 'a') => {a: { value: 1, type: StorageType.COMMENT }}
    * 
    * On resolve - The saved payload.
    * On reject - Fail reason.
    */
-  getAllBy(predicate: (key: string) => boolean): Promise<{ [key: string]: any }>;
+  getAllBy(predicate: (key: string, type: StorageType) => boolean): Promise<{ [key: string]: any }>;
 
   /**
    * Clear entire storage
@@ -63,7 +106,7 @@ interface Repository {
   deleteKeys(keys: string[]): Promise<boolean>;
 }
 
-const getError = (): string | undefined => {
+export const getError = (): string | undefined => {
   if (chrome.runtime.lastError) {
     if (chrome.runtime.lastError.message) {
       return chrome.runtime.lastError.message;
@@ -100,14 +143,18 @@ class ChromeStorageRepository implements Repository {
     });
   }
 
-  getAllBy(predicate: (key: string) => boolean): Promise<{ [key: string]: any }> {
+  getAll(): Promise<{ [key: string]: any }> {
+    return this.getAllBy((k, type) => true);
+  }
+
+  getAllBy(predicate: (key: string, type: StorageType) => boolean): Promise<{ [key: string]: any }> {
     return new Promise((resolve, reject) => {
       chrome.storage.sync.get(null, (results) => {
         const error = getError();
         if (error) {
           reject(error);
         } else {
-          const filteredObject = pickby(results, (v, k) => predicate(k));
+          const filteredObject = pickby(results, (v, k) => predicate(k, v.type));
           resolve(filteredObject);
         }
       });
@@ -121,9 +168,9 @@ class ChromeStorageRepository implements Repository {
         if (error) {
           reject(error);
         } else {
-          this.getAllBy(x => true)
+          this.getAll()
             .then(vals => resolve(isempty(vals)))
-            .catch(vals => resolve(false));
+            .catch(e => reject(e));
         }
       });
     });
@@ -136,33 +183,20 @@ class ChromeStorageRepository implements Repository {
         if (error) {
           reject(error);
         } else {
-          this.getAllBy(x => true)
+          this.getAll()
             .then((data) => {
-              const containsDeletedKeys = keys.map(key => has(data, key))
+              console.log('keys: ', keys + ' ,data: ', data);
+              
+              const isAllKeysDeleted = keys.map(key => !has(data, key))
                 .reduce((acc, x) => x && acc, true);
-              resolve(!containsDeletedKeys);
+              resolve(isAllKeysDeleted);
             })
-            .catch(vals => resolve(false));
+            .catch(e => reject(e));
         }
       });
     });
   }
 }
-
-
-export const save = <T extends {}>(payload: T) => {
-  logWithPayload('storage.ts saving', payload);
-  chrome.storage.sync.set(payload, () => {
-    if (chrome.runtime.lastError && process.env.LOGGING) {
-      logIfError('error saving to storage');
-    }
-  });
-};
-
-export const clear = () => chrome.storage.sync.clear(() => {
-  log('cleared storage');
-  logIfError('error clearing local storage');
-});
 
 /**
  * Given a url such as 'https://www.reddit.com/r/java/comments/74x9gv/title?queryParams'.
@@ -170,7 +204,6 @@ export const clear = () => chrome.storage.sync.clear(() => {
  * reddit api - GET [/r/subreddit]/comments/article
  * 
  * This function returns the article id of 74x9gv.
- * An id is created in the form of 'comment:74x9gv to allow querying the store for comment keys only.
  * 
  * @param url
  * @return The derived id otherwise an empty string.
@@ -179,7 +212,7 @@ export const getArticleIdFromCommentUrl = (url: string) => {
   if (url === '') return '';
   const tokens = url.split('/');
   const index = tokens.indexOf('comments') + 1;
-  return `comment:${tokens.slice(index, index + 1)[0]}`;
+  return tokens.slice(index, index + 1)[0];
 };
 
 

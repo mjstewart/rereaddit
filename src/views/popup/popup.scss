@@ -10,6 +10,15 @@ header {
   width: 500px;
 }
 
- 
+.small-subheader {
+  color: lighten(black, 50%);
+  font-style: italic;
+  font-size: 11px;
+}
 
- 
+#unfollow-thread {
+  p {
+    padding: 0;
+    margin: 0;
+  }
+}

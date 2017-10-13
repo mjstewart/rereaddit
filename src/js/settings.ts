@@ -1,12 +1,12 @@
+import { StorageType } from '@js/storage';
+
+export const APP_NAME = 'rereaddit';
+export const APP_SLOGAN = 'Track and manage unread reddit comments';
+
 export const DEFAULT_UNREAD_COMMENT_COLOUR = '#B3ECB7';
 
-/**
- * Types of data stored to allow querying / filtering.
- */
-export enum StorageType {
-  SETTING = 'SETTING',
-  COMMENT = 'COMMENT',
-}
+// Setting keys used to access storage
+export const unreadCommentColor = 'unreadCommentColor';
 
 export interface SettingKeys {
   defaultUnreadCommentColor: string;

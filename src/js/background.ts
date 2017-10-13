@@ -1,16 +1,14 @@
-import { GET_CURRENT_TAB_URL } from '@js/messages';
-import { log, logWithPayload } from '@js/logging';
-import { repository } from '@js/storage';
+import { Message } from '@js/messages';
+import * as logging from '@js/logging';
+import { repository, StorageType, getError } from '@js/storage';
 import * as isempty from 'lodash.isempty';
 import {
   settingKeys,
   makeDefaultUnreadColorSetting,
-  StorageType,
 } from '@js/settings';
- 
-chrome.storage.sync.get(null, (store) => {
-  logWithPayload('background.js get full store', store);
-});
+
+// repository.deleteAll();
+repository.getAll().then(data => logging.logWithPayload('ALL STORAGE', data));
 
 /**
  * The first time the extension loads, default settings are saved, otherwise nothing
@@ -23,7 +21,7 @@ chrome.storage.sync.get(null, (store) => {
       await repository.save(makeDefaultUnreadColorSetting());
     }
   } catch (e) {
-    log(e);
+    logging.log(e);
   }
 })();
 
@@ -32,26 +30,38 @@ chrome.storage.sync.get(null, (store) => {
  * Content scripts can send messages to the background task which has special priviledges.
  * The background task responds to the caller by sending the payload back using the
  * sendResponse callback.
+ * 
+ * The callback must return true if you want to call another async function, otherwise
+ * sendResponse channel is closed. 
+ * https://developer.chrome.com/extensions/runtime#event-onMessage
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  log(`chrome.runtime.onMessage: ${message}`);
+  logging.log(`chrome.runtime.onMessage: ${message}`);
   switch (message) {
-    case GET_CURRENT_TAB_URL:
-      logWithPayload('background.ts onMessage: ', sender);
-      sendResponse(sender.url);
+    case Message.GET_CURRENT_TAB_URL:
+      getCurrentTabUrl(sendResponse);
     default:
   }
+  return true;
 });
+
+const getCurrentTabUrl = (sendResponse) => {
+  chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+    if (tabs.length === 0) {
+      sendResponse('');
+    } else {
+      sendResponse(tabs[0].url);
+    }
+  });
+};
 
 /**
  * When user is on https://www.reddit.com, the page action icon is enabled.
  */
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tab.url && tab.url.indexOf('https://www.reddit.com') === 0) {
-    log(`background.ts chrome.pageAction.show: ${tab.url!}`);
     chrome.pageAction.show(tabId);
   } else {
-    log(`background.ts chrome.pageAction.hide: ${tab.url!}`);
     chrome.pageAction.hide(tabId);
   }
 });
