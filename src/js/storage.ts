@@ -3,7 +3,7 @@ import * as pickby from 'lodash.pickby';
 import * as isempty from 'lodash.isempty';
 import * as has from 'lodash.has';
 import { Message } from '@js/messages';
- 
+
 
 /**
   * Example storage structure
@@ -104,7 +104,45 @@ interface Repository {
    * On reject - Fail reason.
    */
   deleteKeys(keys: string[]): Promise<boolean>;
+
+  /**
+   * Delete all entries matching the supplied predicate.
+   * 
+   * Every value in storage has a StorageType field used for filtering.
+   * The predicate gets passed in the key and StorageType which the caller can use to decide
+   * if the item should be deleted.
+   * 
+   * for each (key, value) pair in storage { 
+   *    if (predicate(key, value.type)) {
+   *       delete pair
+   *    }
+   * }
+   * 
+   * usage:
+   * { 
+   *   a: { value: 1, type: StorageType.COMMENT },
+   *   b: { value: 2, type: StorageType.COMMENT },
+   *   c: { value: 3, type: StorageType.SETTING }
+   * }
+   * 
+   * deleteBy((key, type) => type === StorageType.COMMENT) => {c: { value: 3, type: StorageType.SETTING }}
+   * 
+   * Note: Due to how chrome storage works, getAllBy is called with the predicate which provides
+   * a list of the keys to delete which are passed to the delete function. 
+   * 
+   * On resolve - true if successful and the storage no longer contains the 
+   * deleted keys, otherwise false. 
+   * On reject - Fail reason.
+   */
+  deleteBy(predicate: (key: string, type: StorageType) => boolean): Promise<boolean>;
 }
+
+/**
+ * Returns true if every key in keys is not a property in the data object
+ */
+export const everyKeyNotIn = (keys: string[], data: { [key: string]: any }) => {
+  return keys.map(key => !has(data, key)).indexOf(false) === -1;
+};
 
 export const getError = (): string | undefined => {
   if (chrome.runtime.lastError) {
@@ -184,19 +222,33 @@ class ChromeStorageRepository implements Repository {
           reject(error);
         } else {
           this.getAll()
-            .then((data) => {
-              console.log('keys: ', keys + ' ,data: ', data);
-              
-              const isAllKeysDeleted = keys.map(key => !has(data, key))
-                .reduce((acc, x) => x && acc, true);
-              resolve(isAllKeysDeleted);
-            })
+            .then(data => resolve(everyKeyNotIn(keys, data)))
             .catch(e => reject(e));
         }
       });
     });
   }
+
+  deleteBy(predicate: (key: string, type: StorageType) => boolean): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      this.getAllBy(predicate).then((matches) => {
+        const keys = Object.keys(matches);
+
+        chrome.storage.sync.remove(keys, () => {
+          const error = getError();
+          if (error) {
+            reject(error);
+          } else {
+            this.getAll().then((all) => {
+              resolve(everyKeyNotIn(keys, all));
+            });
+          }
+        });
+      }).catch(e => reject(e));
+    });
+  }
 }
+
 
 /**
  * Given a url such as 'https://www.reddit.com/r/java/comments/74x9gv/title?queryParams'.

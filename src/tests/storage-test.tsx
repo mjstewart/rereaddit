@@ -353,8 +353,8 @@ describe('ChromeStorageRepository - storage.ts', () => {
 
       const actual = await repository.deleteKeys(['key']);
 
-      assert.ok(chrome.storage.sync.remove.calledOnce);
       assert.isTrue(actual);
+      assert.ok(chrome.storage.sync.remove.calledOnce);
     });
 
     it('returns true when all deleted keys are actually removed from non empty storage', async () => {
@@ -371,13 +371,12 @@ describe('ChromeStorageRepository - storage.ts', () => {
       chrome.storage.sync.get.yields(expectAfterDelete);
 
       const actual = await repository.deleteKeys(['a', 'c']);
-      const currentStorage = await repository.getAll();
 
-      assert.ok(chrome.storage.sync.remove.calledOnce);
       assert.isTrue(actual);
+      assert.ok(chrome.storage.sync.remove.calledOnce);
     });
 
-    it('returns false when not all requested keys have been deleted from non empty storage', async () => {
+    it('returns false when some requested deleted keys are still in storage', async () => {
       const data = {
         a: { value: 1, type: StorageType.COMMENT },
         b: { value: 2, type: StorageType.COMMENT },
@@ -394,18 +393,113 @@ describe('ChromeStorageRepository - storage.ts', () => {
       chrome.storage.sync.get.yields(expectAfterDelete);
 
       const actual = await repository.deleteKeys(['a', 'c']);
-      const currentStorage = await repository.getAll();
 
       assert.ok(chrome.storage.sync.remove.calledOnce);
       assert.isFalse(actual);
     });
   });
+
+  describe('deleteBy', () => {
+    it('rejects promise when error accessing storage', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+        d: { value: 4, type: StorageType.SETTING },
+      };
+
+      chrome.runtime.lastError = { message: 'error' };
+      chrome.storage.sync.get.yields(data);
+      chrome.storage.sync.remove.yields();
+
+      try {
+        const actual = await repository.deleteBy((key, type) => {
+          return type === StorageType.COMMENT;
+        });
+      } catch (e) {
+        assert.strictEqual('error', e);
+      }
+    });
+
+    it('Returns true when non existing key is deleted', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+        d: { value: 4, type: StorageType.SETTING },
+      };
+
+      chrome.storage.sync.get.yields(data);
+      chrome.storage.sync.remove.yields();
+
+      const actual = await repository.deleteBy((key, type) => {
+        return key === 'e';
+      });
+
+      assert.isTrue(actual);
+      assert.ok(chrome.storage.sync.remove.calledOnce);
+      // Get all entries before and after delete
+      assert.ok(chrome.storage.sync.get.calledTwice);
+    });
+
+    it('Returns false when deleted key still exists after deletion', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+        d: { value: 4, type: StorageType.SETTING },
+      };
+
+      // Try delete 'b' but its still there after deletion.
+      const expect = data;
+
+      chrome.storage.sync.get
+        .onCall(0).yields(data)
+        .onCall(1).yields(expect);
+
+      chrome.storage.sync.remove.yields();
+
+      const actual = await repository.deleteBy((key, type) => {
+        return key === 'b';
+      });
+
+      assert.isFalse(actual);
+      assert.ok(chrome.storage.sync.remove.calledOnce);
+      // Get all entries before and after delete
+      assert.ok(chrome.storage.sync.get.calledTwice);
+    });
+
+    it('Deletes matching predicate entries and returns true denoting deleted keys no longer exist', async () => {
+      const data = {
+        a: { value: 1, type: StorageType.COMMENT },
+        b: { value: 2, type: StorageType.COMMENT },
+        c: { value: 3, type: StorageType.COMMENT },
+        d: { value: 4, type: StorageType.SETTING },
+      };
+
+      const expect = {
+        d: { value: 4, type: StorageType.SETTING },
+      };
+
+      chrome.storage.sync.get
+        .onCall(0).yields(data)
+        .onCall(1).yields(expect);
+
+      chrome.storage.sync.remove.yields();
+
+      const actual = await repository.deleteBy((key, type) => {
+        return type === StorageType.COMMENT;
+      });
+
+      assert.isTrue(actual);
+      assert.ok(chrome.storage.sync.remove.calledOnce);
+      // Get all entries before and after delete
+      assert.ok(chrome.storage.sync.get.calledTwice);
+    });
+  });
 });
 
-
-
-
-describe('getUrlForCommentId', () => {
+describe('getArticleIdFromCommentUrl', () => {
   it('returns empty string when url is empty', () => {
     const url = '';
     const expect = '';

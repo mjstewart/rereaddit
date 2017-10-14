@@ -1,4 +1,4 @@
-import { Message } from '@js/messages';
+import { Message, MessageType } from '@js/messages';
 import * as logging from '@js/logging';
 import { repository, StorageType, getError } from '@js/storage';
 import * as isempty from 'lodash.isempty';
@@ -35,11 +35,15 @@ repository.getAll().then(data => logging.logWithPayload('ALL STORAGE', data));
  * sendResponse channel is closed. 
  * https://developer.chrome.com/extensions/runtime#event-onMessage
  */
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) => {
   logging.log(`chrome.runtime.onMessage: ${message}`);
-  switch (message) {
-    case Message.GET_CURRENT_TAB_URL:
+  switch (message.type) {
+    case MessageType.GET_CURRENT_TAB_URL:
       getCurrentTabUrl(sendResponse);
+      break;
+    case MessageType.OPEN_TAB:
+      openTab(message.url, sendResponse);
+      break;
     default:
   }
   return true;
@@ -52,6 +56,12 @@ const getCurrentTabUrl = (sendResponse) => {
     } else {
       sendResponse(tabs[0].url);
     }
+  });
+};
+
+const openTab = (url: string, sendResponse) => {
+  chrome.tabs.create({ url }, (tab) => {
+    sendResponse(tab);
   });
 };
 

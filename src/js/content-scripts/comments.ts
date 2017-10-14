@@ -1,4 +1,4 @@
-import { Message, sendMessage } from '@js/messages';
+import { MessageType, sendMessage } from '@js/messages';
 import * as logging from '@js/logging';
 import * as isempty from 'lodash.isempty';
 import * as has from 'lodash.has';
@@ -11,11 +11,22 @@ import {
 } from '@js/storage';
 
 export type Comment = {
+  // https://www.reddit.com/r/java/comments/763ibv/title. The id is 763ibv
   articleId: string,
+
   type: StorageType.COMMENT,
+
+  // The last time user viewed the article
   lastViewedTime: string,
+
+  // Title of the article
   title: string,
+
+  // submitted an hour ago by user
   tagline: string,
+
+  // r/java but there is no r/ prepended
+  subreddit: string,
 };
 
 export type CommentEntry = {
@@ -35,7 +46,7 @@ export type CommentEntry = {
  * 
  * @param meta
  */
-const createCommentEntry = (meta: Meta): CommentEntry => {
+const createArticleEntry = (meta: Meta): CommentEntry => {
   return {
     [meta.articleId]: {
       type: StorageType.COMMENT,
@@ -65,51 +76,28 @@ type Meta = {
   articleId: string,
   title: string,
   tagline: string,
+  subreddit: string,
 };
-
-// /**
-//  * Extract meta data from the article such as the url, title etc.
-//  */
-// const articleMetaExtractor = (): Promise<Meta> => {
-//   return new Promise((resolve, reject) => {
-//     chrome.runtime.sendMessage(Message.GET_CURRENT_TAB_URL, (currentUrl: string) => {
-//       const error = getError();
-
-//       if (error) {
-//         reject(error);
-//         return;
-//       }
-
-//       const articleId = getArticleIdFromCommentUrl(currentUrl);
-
-//       const titleElement = document.querySelector('.top-matter .title a');
-//       const title = titleElement ? titleElement.innerHTML : 'Missing title';
-
-//       // submitted 11 hours ago by user
-//       const taglineElement: HTMLElement | null = document.querySelector('.top-matter .tagline') as HTMLElement;
-//       const tagline = taglineElement ? taglineElement.innerText : '';
-
-//       resolve({ articleId, title, tagline });
-//     });
-//   });
-// };
 
 /**
  * Extract meta data from the article such as the url, title etc.
  */
 const articleMetaExtractor = async (): Promise<Meta> => {
   try {
-    const url = await sendMessage<string>(Message.GET_CURRENT_TAB_URL);
+    const url = await sendMessage<string>({ type: MessageType.GET_CURRENT_TAB_URL });
     const articleId = getArticleIdFromCommentUrl(url);
 
     const titleElement = document.querySelector('.top-matter .title a');
-    const title = titleElement ? titleElement.innerHTML : 'Missing title';
+    const title = titleElement ? titleElement.innerHTML : '';
 
-    // submitted 11 hours ago by user
+    const siteTableElement = document.querySelector('#siteTable .thing');
+    const subredditAttribute = siteTableElement && siteTableElement.getAttribute('data-subreddit');
+    const subreddit = subredditAttribute ? subredditAttribute : '';
+
     const taglineElement: HTMLElement | null = document.querySelector('.top-matter .tagline') as HTMLElement;
     const tagline = taglineElement ? taglineElement.innerText : '';
 
-    return Promise.resolve({ articleId, title, tagline });
+    return Promise.resolve({ articleId, title, tagline, subreddit });
   } catch (e) {
     return Promise.reject(`Unable to get URL: ${e}`);
   }
@@ -129,7 +117,7 @@ window.addEventListener('load', async () => {
     logging.logWithPayload('article get partial query', queryResult);
     if (!has(queryResult, meta.articleId)) {
       // First time viewing article
-      const entry = createCommentEntry(meta);
+      const entry = createArticleEntry(meta);
       logging.logWithPayload(`First time viewing ${meta.title}, saving new comment entry to storage`, entry);
       try {
         await repository.save(entry);
@@ -168,8 +156,10 @@ window.addEventListener('load', async () => {
       // });
     }
 
-    // Update the last visit time to track new comments for future visits
-    repository.save(createCommentEntry(meta));
+    // Update the last visit time and any other meta data such as original post time
+    // as reddit servers autoupdate the time. This also sets the article as completely read ready 
+    // for the next visit to track new unread comments.
+    repository.save(createArticleEntry(meta));
   } catch (e) {
     logging.log(`Could not extract meta data for article: ${e}`);
   }

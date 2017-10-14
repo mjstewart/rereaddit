@@ -3,7 +3,8 @@ import { Message, sendMessage } from '@js/messages';
 import { Grid, Header, Button, Modal } from 'semantic-ui-react';
 import * as logging from '@js/logging';
 import StatusModal from '@views/modals/StatusModal';
-import * as has from 'lodash.has';
+import * as findIndex from 'lodash.findindex';
+import { CommentEntry, Comment } from '@js/content-scripts/comments';
 import {
   repository,
   StorageType,
@@ -11,100 +12,27 @@ import {
   getArticleIdFromCommentUrl,
 } from '@js/storage';
 
-interface State {
-  data: { [key: string]: any };
+interface Props {
+  comments: Comment[];
   url: string;
-  shortUrl: string;
   articleId: string;
-  error?: string;
-  success?: string;
+  deleteAllNonSettings: () => Promise<void>;
+  deleteArticle: (articleId: string) => Promise<void>;
 }
 
-class StorageSettings extends React.Component<{}, State> {
+class StorageSettings extends React.Component<Props, {}> {
   constructor(props) {
     super(props);
-
-    this.state = {
-      data: {},
-      url: '',
-      shortUrl: '',
-      articleId: '',
-    };
-  }
-
-  componentDidMount() {
-    this.loadCommentHistory();
-    this.loadUrl();
-  }
-
-  loadUrl = async () => {
-    try {
-      const url = await sendMessage<string>(Message.GET_CURRENT_TAB_URL);
-      this.setState({
-        url,
-        shortUrl: this.shortenUrl(url),
-        articleId: getArticleIdFromCommentUrl(url),
-      });
-    } catch (e) {
-      this.setState({ url: '' });
-    }
-  }
-
-  loadCommentHistory = async () => {
-    try {
-      const data = await repository.getAllBy((key, type) => type !== StorageType.SETTING);
-      this.setState({ data });
-    } catch (e) {
-      this.setState({ error: `Unable to get all data from storage ${e}` });
-    }
-  }
-
-  getTotalStorageEntries = () => {
-    return Object.keys(this.state.data).length;
   }
 
   viewStorage = async () => {
-    logging.logWithPayload('all non setting storage', this.state.data);
-    logging.logWithPayload('this.state', this.state);
-  }
-
-  deleteAllStorage = async () => {
-    try {
-      const deleted = await repository.deleteAll();
-      if (deleted) {
-        this.setState({ data: {}, success: 'All history succesfully deleted' });
-      } else {
-        this.setState({ error: 'Not all history could be deleted' });
-      }
-    } catch (e) {
-      this.setState({ error: `Uanble to delete all history: ${e}` });
-    } finally {
-      this.loadCommentHistory();
-    }
-  }
-
-  deleteHistoryForThisArticleOnly = async () => {
-    try {
-      const articleId = getArticleIdFromCommentUrl(this.state.url);
-      const deleted = await repository.deleteKeys([articleId]);
-      if (deleted) {
-        this.setState({ data: {}, success: 'History for this thread succesfully deleted' });
-      } else {
-        this.setState({ error: 'Unable to delete the history for this thread' });
-      }
-    } catch (e) {
-      this.setState({ error: `Unable to delete the history for this thread: ${e}` });
-    } finally {
-      this.loadCommentHistory();
-    }
-  };
-
-  onModalClose = () => {
-    this.setState({ error: undefined, success: undefined });
+    logging.logWithPayload('StorageSettings this.props', this.props);
+    const all = await repository.getAll();
+    logging.logWithPayload('All storage', all);
   }
 
   isInArticle = () => {
-    return this.state.url.indexOf('comments') >= 0;
+    return this.props.url.indexOf('comments') >= 0;
   }
 
   shortenUrl = (url: string) => {
@@ -120,30 +48,22 @@ class StorageSettings extends React.Component<{}, State> {
   }
 
   /**
-   * Returns true iff the url's article id is already in storage meaning
-   * the user has already visited this article and has the option to unfollow.
+   * Returns true iff the url's article id provided by props is already in the list of comments.
+   * This means the user has already visited this article and has the option to unfollow.
    */
   showUnfollowThisArticle = () => {
-    return this.isInArticle && has(this.state.data, this.state.articleId);
+    return this.isInArticle() &&
+      findIndex(
+        this.props.comments,
+        (comment: Comment) => comment.articleId === this.props.articleId,
+      ) !== -1;
   }
+
+  deleteArticle = () => this.props.deleteArticle(this.props.articleId);
 
   render() {
     return (
       <div>
-        {this.state.error ?
-          <StatusModal
-            type={'error'}
-            message={this.state.error}
-            onClose={this.onModalClose} />
-          : null}
-
-        {this.state.success ?
-          <StatusModal
-            type={'success'}
-            message={this.state.success}
-            onClose={this.onModalClose} />
-          : null}
-
         <Header as="h3" dividing>
           Storage
         </Header>
@@ -153,11 +73,11 @@ class StorageSettings extends React.Component<{}, State> {
               <p>Clear all history</p>
             </Grid.Column>
             <Grid.Column width={6} >
-              <Button basic color="red" size="mini" onClick={this.deleteAllStorage}>
+              <Button basic color="red" size="mini" onClick={this.props.deleteAllNonSettings}>
                 Delete
               </Button>
               <Button basic color="blue" size="mini" onClick={this.viewStorage}>
-                View ({this.getTotalStorageEntries()})
+                View ({this.props.comments.length})
               </Button>
             </Grid.Column>
           </Grid.Row>
@@ -166,17 +86,16 @@ class StorageSettings extends React.Component<{}, State> {
               <Grid.Column width={10} >
                 <div id="unfollow-thread">
                   <p>Unfollow this article only</p>
-                  <p className="small-subheader">{this.state.shortUrl}</p>
+                  <p className="small-subheader">{this.shortenUrl(this.props.url)}</p>
                 </div>
               </Grid.Column>
               <Grid.Column width={6} >
-                <Button basic color="red" size="mini" onClick={this.deleteHistoryForThisArticleOnly}>
-                  Delete
+                <Button basic color="red" size="mini" onClick={this.deleteArticle}>
+                  Unfollow
             </Button>
               </Grid.Column>
             </Grid.Row>
             : null}
-
         </Grid>
       </div>
     );
