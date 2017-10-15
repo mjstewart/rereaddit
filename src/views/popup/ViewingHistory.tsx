@@ -113,12 +113,17 @@ class ViewingHistory extends React.Component<Props, State> {
                   onClick={this.handleSort(SortableColumn.UnreadCount)}>
                   # Unread
                 </Table.HeaderCell>
-                <Table.HeaderCell width={2} Unfollow>Unfollow</Table.HeaderCell>
+                <Table.HeaderCell width={2}>Unfollow</Table.HeaderCell>
               </Table.Row>
             </Table.Header>
 
             <Table.Body>
-              {comments.map(comment => <Row comment={comment} deleteArticle={this.deleteArticle} />)}
+              {comments.map(comment =>
+                <Row
+                  key={comment.articleId}
+                  comment={comment}
+                  deleteArticle={this.deleteArticle}
+                />)}
             </Table.Body>
           </Table>}
       </div>
@@ -151,7 +156,7 @@ const Row: React.SFC<RowProps> = ({ comment, deleteArticle }) => {
   const subredditRedirectUrl = `https://www.reddit.com/r/${comment.subreddit}`;
 
   return (
-    <Table.Row key={comment.articleId}>
+    <Table.Row>
       <Table.Cell width={7}>
         <a onClick={openTab(articleUrl)} href={articleUrl}>
           {shortenTitle(comment.title)}
@@ -164,9 +169,7 @@ const Row: React.SFC<RowProps> = ({ comment, deleteArticle }) => {
       <Table.Cell width={4}>{moment(new Date(comment.lastViewedTime)).fromNow()}</Table.Cell>
       <Table.Cell width={2}>0</Table.Cell>
       <Table.Cell width={2}>
-        <Button basic color="red" size="mini" onClick={deleteArticle(comment.articleId)}>
-          Unfollow
-      </Button>
+        <Button basic color="red" size="mini" onClick={deleteArticle(comment.articleId)}>Unfollow</Button>
       </Table.Cell>
     </Table.Row>
   );

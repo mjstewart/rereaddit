@@ -52,7 +52,7 @@ class Popup extends React.Component<{}, State> {
     try {
       const entries: CommentEntry = await repository.getAllBy((key, type) => type === StorageType.COMMENT);
    
-      const comments = reduce(
+      const comments: Comment[] = reduce(
         entries,
         (acc: Comment[], value, key) => {
           acc.push(value);
@@ -61,6 +61,8 @@ class Popup extends React.Component<{}, State> {
         []);
 
       logging.logWithPayload('Popup LOAD COMMENTS should be array: ', comments);
+      this.getUnreadTotals(comments);
+
       this.setState({ comments });
     } catch (e) {
       this.setState({ error: `Unable to get all comments from storage ${e}` });
@@ -78,6 +80,10 @@ class Popup extends React.Component<{}, State> {
       this.setState({ url: '', articleId: '' });
     }
   }
+
+  getUnreadTotals = (comments: Comment[]) => {
+    logging.logWithPayload('Popup, getUnreadTotals for', comments);
+  }  
 
   deleteAllNonSettings = async () => {
     try {
