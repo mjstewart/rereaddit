@@ -10,6 +10,9 @@ import { CommentEntry, Comment } from '@js/content-scripts/comments';
 import ViewingHistory from './ViewingHistory';
 import * as reduce from 'lodash.reduce';
 import * as sortby from 'lodash.sortby';
+import * as pick from 'lodash.pick';
+import * as isempty from 'lodash.isempty';
+import * as moment from 'moment';
 import {
   repository,
   StorageType,
@@ -51,7 +54,7 @@ class Popup extends React.Component<{}, State> {
   loadComments = async () => {
     try {
       const entries: CommentEntry = await repository.getAllBy((key, type) => type === StorageType.COMMENT);
-   
+
       const comments: Comment[] = reduce(
         entries,
         (acc: Comment[], value, key) => {
@@ -59,11 +62,16 @@ class Popup extends React.Component<{}, State> {
           return acc;
         },
         []);
+        
 
       logging.logWithPayload('Popup LOAD COMMENTS should be array: ', comments);
-      this.getUnreadTotals(comments);
-
-      this.setState({ comments });
+      
+      // Show loading spinner in Popup render?. setstate loading to begin in constructor
+      // then set loading false when all promises are resolved!.
+      //  css for view count make green.
+      // order viewing history by most unread then by last viewed.
+      const commentsWithUpdatedUnreadCounts  = await Promise.all(this.getUnreadTotals(comments));
+      this.setState({ comments: commentsWithUpdatedUnreadCounts });
     } catch (e) {
       this.setState({ error: `Unable to get all comments from storage ${e}` });
     }
@@ -81,9 +89,75 @@ class Popup extends React.Component<{}, State> {
     }
   }
 
-  getUnreadTotals = (comments: Comment[]) => {
+  parseUnreadCount = async (comment: Comment, articleUrl: string): Promise<Comment> => {
+    try {
+      const payload = await fetch(articleUrl);
+      const json = await payload.json();
+      logging.logWithPayload('parse json: ', json);
+
+      // json response should always be an array with 2 elements
+      // index 0 is the original post, index 1 is the entry point to the main comments
+      if (!(Array.isArray(json) && json.length === 2)) {
+        return {
+          ...comment,
+          unread: 0, 
+        };
+      }
+
+      // Give stack initial value to begin recursive walk.
+      const stack = [json[1].data];
+      logging.logWithPayload('parse initial stack is: ', stack);
+
+      const unreadComments: any = [];
+    
+      while (stack.length > 0) {
+        const data = stack.pop();
+        const meta = pick(data, 'body', 'created_utc', 'author');
+        if (!isempty(meta)) {
+          const created = moment.unix(meta.created_utc);
+          if (created.isAfter(moment(new Date(comment.lastViewedTime)))) {
+            unreadComments.push(meta);
+          }
+        }
+        
+        if (data.children) {
+          data.children.forEach(child => stack.push(child.data));
+        }
+
+        if (data.replies) {
+          stack.push(data.replies.data);
+        }
+      }
+      
+      const newComment: Comment = {
+        ...comment,
+        unread: unreadComments.length,
+      };
+
+      // need to add unread to Comment type. set it 0 to start with.
+      logging.logWithPayload('collected results after parsing', unreadComments);
+      logging.logWithPayload('newComment', newComment);
+
+      // const body = await payload.text();
+      return newComment;
+    } catch (e) {
+      return e;
+    }
+  }
+
+  /**
+   * const created = moment.unix(1507930628.0);
+
+console.log(created.utc().format('ddd DD MMM HH:mm:ss YYYY zz'));
+console.log(created.utc());
+   */
+  getUnreadTotals = (comments: Comment[]): Promise<Comment>[] => {
     logging.logWithPayload('Popup, getUnreadTotals for', comments);
-  }  
+    return comments.map(async (comment) => {
+      const articleUrl = `https://www.reddit.com/r/${comment.subreddit}/comments/${comment.articleId}.json`;
+      return await this.parseUnreadCount(comment, articleUrl);
+    });
+  }
 
   deleteAllNonSettings = async () => {
     try {

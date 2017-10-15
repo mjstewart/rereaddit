@@ -34,11 +34,14 @@ class ViewingHistory extends React.Component<Props, State> {
   constructor(props) {
     super(props);
 
+    // TODO: lift sort direction up to popup, it would be alot easier.
     this.state = {
       column: SortableColumn.UnreadCount,
       direction: Direction.Descending,
     };
   }
+
+  
 
   deleteArticle = (articleId: string) => () => this.props.deleteArticle(articleId);
 
@@ -167,7 +170,7 @@ const Row: React.SFC<RowProps> = ({ comment, deleteArticle }) => {
           <a onClick={openTab(subredditRedirectUrl)} href={subredditRedirectUrl}>{`r/${comment.subreddit}`}</a>}
       </Table.Cell>
       <Table.Cell width={4}>{moment(new Date(comment.lastViewedTime)).fromNow()}</Table.Cell>
-      <Table.Cell width={2}>0</Table.Cell>
+      <Table.Cell width={2}>{comment.unread}</Table.Cell>
       <Table.Cell width={2}>
         <Button basic color="red" size="mini" onClick={deleteArticle(comment.articleId)}>Unfollow</Button>
       </Table.Cell>

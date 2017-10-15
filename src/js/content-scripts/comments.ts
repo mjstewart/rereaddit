@@ -3,6 +3,7 @@ import * as logging from '@js/logging';
 import * as isempty from 'lodash.isempty';
 import * as has from 'lodash.has';
 import { UnreadCommentColorSetting, settingKeys } from '@js/settings';
+import * as moment from 'moment';
 import {
   repository,
   getError,
@@ -27,6 +28,9 @@ export type Comment = {
 
   // r/java but there is no r/ prepended
   subreddit: string,
+
+  // Total unread comments in the article since lastViewedTime.
+  unread: number,
 };
 
 export type CommentEntry = {
@@ -51,6 +55,7 @@ const createArticleEntry = (meta: Meta): CommentEntry => {
     [meta.articleId]: {
       type: StorageType.COMMENT,
       lastViewedTime: new Date().toString(),
+      unread: 0,
       ...meta,
     },
   };
@@ -129,17 +134,17 @@ window.addEventListener('load', async () => {
 
     // Get the existing article and highlight any new comments which occur after the last viewed time.
     const existingArticle = queryResult[meta.articleId];
-    const lastViewedTime = new Date(existingArticle.lastViewedTime);
+    const lastViewedTime = moment(new Date(existingArticle.lastViewedTime));
 
     logging.logWithPayload('existingArticle', existingArticle);
     const comments = document.getElementsByClassName('comment');
 
     for (let i = 0; i < comments.length; i = i + 1) {
       const comment = comments[i];
-      const commentTime = new Date(comment.querySelector('time')!.getAttribute('datetime')!);
+      const commentTime = moment(new Date(comment.querySelector('time')!.getAttribute('datetime')!));
 
       // if root comment is newer, all descendents will be newer too.
-      if (commentTime > lastViewedTime) {
+      if (commentTime.isAfter(lastViewedTime)) {
         comment.querySelectorAll('.usertext-body').forEach((child: HTMLElement) => {
           child.style.backgroundColor = queryResult.unreadCommentColor.color;
           child.style.cursor = 'pointer';

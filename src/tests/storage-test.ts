@@ -552,6 +552,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title a',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // 0 days 23:59:59 so its not deleted as its within bounds by 1 second
       b: {
@@ -561,6 +562,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title b',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
     };
 
@@ -584,6 +586,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title a',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // 4 days 23:59:59 so its not deleted as its within bounds by 1 second.
       b: {
@@ -593,6 +596,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title b',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // exactly 5 days - delete
       c: {
@@ -602,6 +606,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title c',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // 5 days 1 second - delete
       d: {
@@ -611,6 +616,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title d',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
     };
 
@@ -635,6 +641,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title a',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // Exactly 3 days. delete
       b: {
@@ -644,6 +651,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title b',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // 3 days 1 sec ago, delete
       c: {
@@ -653,6 +661,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title c',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // exactly 4 days ago - delete
       d: {
@@ -662,6 +671,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title d',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // exactly 5 days - delete
       e: {
@@ -671,6 +681,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title e',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // exactly 1 week - delete
       f: {
@@ -680,6 +691,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title f',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // exactly 2 weeks - delete
       g: {
@@ -689,6 +701,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title g',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
       // viewed 1 second ago - keep.
       h: {
@@ -698,6 +711,7 @@ describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
         title: 'title h',
         tagline: 'submitted 4 days ago by user',
         subreddit: 'r/test',
+        unread: 0,
       },
     };
 
