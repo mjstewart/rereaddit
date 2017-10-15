@@ -1,10 +1,17 @@
 import { Message, MessageType } from '@js/messages';
 import * as logging from '@js/logging';
-import { repository, StorageType, getError } from '@js/storage';
+import { repository, StorageType, getError, getArticleIdsExceedingDeleteFrequency } from '@js/storage';
 import * as isempty from 'lodash.isempty';
+import * as moment from 'moment';
+import { CommentEntry } from '@js/content-scripts/comments';
 import {
   settingKeys,
   makeDefaultUnreadColorSetting,
+  makeDefaultDeleteFrequencySetting,
+  DeleteFrequencySetting,
+  DeleteFrequency,
+  UnreadCommentColorSetting,
+  deleteFrequencyToDaysMap,
 } from '@js/settings';
 
 // repository.deleteAll();
@@ -16,9 +23,24 @@ repository.getAll().then(data => logging.logWithPayload('ALL STORAGE', data));
  */
 (async function initSettings() {
   try {
-    const unreadCommentColor = await repository.get([settingKeys.unreadCommentColor]);
-    if (isempty(unreadCommentColor)) {
+    type QueryResult = UnreadCommentColorSetting & DeleteFrequencySetting;
+    const result = await repository.get<QueryResult>([settingKeys.unreadCommentColor, settingKeys.deleteFrequency]);
+    const comments: CommentEntry = await repository.getAllBy((key, type) => type === StorageType.COMMENT);
+
+    if (isempty(result.unreadCommentColor)) {
       await repository.save(makeDefaultUnreadColorSetting());
+    }
+
+    if (isempty(result.deleteFrequency)) {
+      await repository.save(makeDefaultDeleteFrequencySetting());
+    } else {
+      // Delete articles that exceed delete frequency visit time 
+      const keysToDelete = getArticleIdsExceedingDeleteFrequency(
+        comments,
+        result.deleteFrequency.frequency,
+        moment(),
+      );
+      await repository.deleteKeys(keysToDelete);
     }
   } catch (e) {
     logging.log(e);

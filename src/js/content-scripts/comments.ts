@@ -2,12 +2,12 @@ import { MessageType, sendMessage } from '@js/messages';
 import * as logging from '@js/logging';
 import * as isempty from 'lodash.isempty';
 import * as has from 'lodash.has';
-import { unreadCommentColor, UnreadCommentColor } from '@js/settings';
+import { UnreadCommentColorSetting, settingKeys } from '@js/settings';
 import {
-  getArticleIdFromCommentUrl,
   repository,
   getError,
   StorageType,
+  getArticleIdFromCommentUrl,
 } from '@js/storage';
 
 export type Comment = {
@@ -111,9 +111,9 @@ window.addEventListener('load', async () => {
     logging.logWithPayload('comments.ts meta data', meta);
 
     // See createCommentEntry comment for the structure, the key is the article id.
-    type QueryResult = CommentEntry & UnreadCommentColor;
+    type QueryResult = CommentEntry & UnreadCommentColorSetting;
 
-    const queryResult = await repository.get<QueryResult>([meta.articleId, unreadCommentColor]);
+    const queryResult = await repository.get<QueryResult>([meta.articleId, settingKeys.unreadCommentColor]);
     logging.logWithPayload('article get partial query', queryResult);
     if (!has(queryResult, meta.articleId)) {
       // First time viewing article

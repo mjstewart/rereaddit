@@ -3,7 +3,9 @@ import * as pickby from 'lodash.pickby';
 import * as isempty from 'lodash.isempty';
 import * as has from 'lodash.has';
 import { Message } from '@js/messages';
-
+import { CommentEntry } from '@js/content-scripts/comments';
+import * as moment from 'moment';
+import { deleteFrequencyToDaysMap, DeleteFrequency } from '@js/settings';
 
 /**
   * Example storage structure
@@ -267,5 +269,29 @@ export const getArticleIdFromCommentUrl = (url: string) => {
   return tokens.slice(index, index + 1)[0];
 };
 
+
+/**
+ * Get all articleId's that exceed the delete frequency. 
+ * 
+ * @param comments All comments in storage
+ * @param frequency When to delete after not visiting an article for x time.
+ * @param now The time right now (easier for testing to supply this)
+ */
+export const getArticleIdsExceedingDeleteFrequency = (
+  comments: CommentEntry,
+  frequency: DeleteFrequency,
+  now: moment.Moment,
+): string[] => {
+  const exceedsDeleteFrequency = (lastViewedTime: moment.Moment) => {
+    const diff = now.diff(lastViewedTime, 'days');
+    return diff >= deleteFrequencyToDaysMap.get(frequency)!;
+  };
+
+  return Object.keys(comments).filter((articleId) => {
+    const comment = comments[articleId];
+    const lastViewedTime = moment(new Date(comment.lastViewedTime));
+    return exceedsDeleteFrequency(lastViewedTime);
+  });
+};
 
 export const repository = new ChromeStorageRepository();

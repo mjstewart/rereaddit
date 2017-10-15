@@ -53,6 +53,7 @@
   },
   "dependencies": {
     "@types/react": "^16.0.10",
+    "lodash.find": "^4.6.0",
     "lodash.findindex": "^4.6.0",
     "lodash.has": "^4.5.2",
     "lodash.isempty": "^4.4.0",

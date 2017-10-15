@@ -35,16 +35,16 @@ export const tslint: NewUseRule = {
 
 /*
  * https://github.com/webpack-contrib/url-loader
- * If image size is under byte limit 8192, it just gets inlined directly into the html document.
+ * If image size is under byte limit 10000, it just gets inlined directly into the html document.
  */
 export const url: NewUseRule = {
   test: /\.(png|jpg|gif|svg|eot|ttf|woff|woff2)$/,
   use: {
     loader: 'url-loader',
     options: {
-      limit: 8192,
-      outputPath: 'img/', // Where webpack will save image in dist folder
-      publicPath: 'img/', // https://github.com/webpack-contrib/html-loader
+      limit: 10000,
+      // outputPath: './img/', // Where webpack will save image in dist folder
+      // publicPath: './img/', // https://github.com/webpack-contrib/html-loader
       name: 'img-[hash:6].[name].[ext]',
     },
   },

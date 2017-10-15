@@ -36,7 +36,7 @@ class StorageSettings extends React.Component<Props, {}> {
   }
 
   shortenUrl = (url: string) => {
-    const MAX_LENGTH = 50;
+    const MAX_LENGTH = 60;
 
     const tokens = url.split('/');
     const index = tokens.indexOf('r');
@@ -69,10 +69,10 @@ class StorageSettings extends React.Component<Props, {}> {
         </Header>
         <Grid>
           <Grid.Row >
-            <Grid.Column width={10} >
-              <p>Clear all history</p>
+            <Grid.Column width={8}>
+              <p>Delete all history</p>
             </Grid.Column>
-            <Grid.Column width={6} >
+            <Grid.Column width={8}>
               <Button basic color="red" size="mini" onClick={this.props.deleteAllNonSettings}>
                 Delete
               </Button>
@@ -83,13 +83,13 @@ class StorageSettings extends React.Component<Props, {}> {
           </Grid.Row>
           {this.showUnfollowThisArticle() ?
             <Grid.Row >
-              <Grid.Column width={10} >
+              <Grid.Column width={8}>
                 <div id="unfollow-thread">
                   <p>Unfollow this article only</p>
                   <p className="small-subheader">{this.shortenUrl(this.props.url)}</p>
                 </div>
               </Grid.Column>
-              <Grid.Column width={6} >
+              <Grid.Column width={8}>
                 <Button basic color="red" size="mini" onClick={this.deleteArticle}>
                   Unfollow
             </Button>

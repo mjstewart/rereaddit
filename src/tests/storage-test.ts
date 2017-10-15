@@ -1,7 +1,15 @@
 import * as chrome from 'sinon-chrome';
-import { assert } from 'chai';
+import { assert, expect } from 'chai';
 import * as mocha from 'mocha';
-import { repository, getArticleIdFromCommentUrl, StorageType } from '@js/storage';
+import { DeleteFrequency } from '@js/settings';
+import * as moment from 'moment';
+import { CommentEntry } from '@js/content-scripts/comments';
+import { 
+  repository, 
+  getArticleIdFromCommentUrl, 
+  StorageType,
+  getArticleIdsExceedingDeleteFrequency,
+} from '@js/storage';
 
 declare const global;
 
@@ -526,5 +534,181 @@ describe('getArticleIdFromCommentUrl', () => {
     const expect = '75fs3p';
     const actual = getArticleIdFromCommentUrl(url);
     assert.strictEqual(actual, expect);
+  });
+});
+
+
+const makeDateString = (formattedValue) => {
+  return moment(formattedValue, 'DD-MM-YYYY HH:mm:ss').toString();
+};
+
+describe('storage.ts getArticleIdsExceedingDeleteFrequency', () => {
+  it('finds no articles to delete when they have all been visited before the delete frequency', () => {
+    const comments: CommentEntry = {
+      a: {
+        articleId: 'a',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('10-01-2017, 09:00:00'),
+        title: 'title a',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // 0 days 23:59:59 so its not deleted as its within bounds by 1 second
+      b: {
+        articleId: 'b',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('09-01-2017, 10:00:01'),
+        title: 'title b',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+    };
+
+    const now = moment(new Date(makeDateString('10-01-2017 10:00:00')));
+
+    const keysToDelete = getArticleIdsExceedingDeleteFrequency(
+      comments,
+      DeleteFrequency.DAY_1,
+      now,
+    );
+
+    expect(keysToDelete).to.be.empty;
+  });
+
+  it('delete article when it has not been viewed within the delete frequency', () => {
+    const comments: CommentEntry = {
+      a: {
+        articleId: 'a',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('10-01-2017, 09:00:00'),
+        title: 'title a',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // 4 days 23:59:59 so its not deleted as its within bounds by 1 second.
+      b: {
+        articleId: 'b',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('05-01-2017, 10:00:01'),
+        title: 'title b',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // exactly 5 days - delete
+      c: {
+        articleId: 'c',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('05-01-2017, 10:00:00'),
+        title: 'title c',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // 5 days 1 second - delete
+      d: {
+        articleId: 'd',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('05-01-2017, 09:59:59'),
+        title: 'title d',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+    };
+
+    const now = moment(new Date(makeDateString('10-01-2017 10:00:00')));
+
+    const keysToDelete = getArticleIdsExceedingDeleteFrequency(
+      comments,
+      DeleteFrequency.DAY_5,
+      now,
+    );
+
+    expect(keysToDelete).to.deep.equal((['c', 'd']));
+  });
+
+  it('deletes all articles that have not been viewed before delete threshold', () => {
+    const comments: CommentEntry = {
+      // Viewed 2 days 23:59:59 ago. Safe by 1 second
+      a: {
+        articleId: 'a',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('17-01-2017, 10:00:01'),
+        title: 'title a',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // Exactly 3 days. delete
+      b: {
+        articleId: 'b',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('17-01-2017, 10:00:00'),
+        title: 'title b',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // 3 days 1 sec ago, delete
+      c: {
+        articleId: 'c',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('17-01-2017, 09:59:59'),
+        title: 'title c',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // exactly 4 days ago - delete
+      d: {
+        articleId: 'd',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('16-01-2017, 10:00:00'),
+        title: 'title d',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // exactly 5 days - delete
+      e: {
+        articleId: 'e',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('15-01-2017, 10:00:00'),
+        title: 'title e',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // exactly 1 week - delete
+      f: {
+        articleId: 'f',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('13-01-2017, 10:00:00'),
+        title: 'title f',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // exactly 2 weeks - delete
+      g: {
+        articleId: 'g',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('06-01-2017, 10:00:00'),
+        title: 'title g',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+      // viewed 1 second ago - keep.
+      h: {
+        articleId: 'h',
+        type: StorageType.COMMENT,
+        lastViewedTime: makeDateString('20-01-2017, 09:59:59'),
+        title: 'title h',
+        tagline: 'submitted 4 days ago by user',
+        subreddit: 'r/test',
+      },
+    };
+
+    const now = moment(new Date(makeDateString('20-01-2017 10:00:00')));
+
+    const keysToDelete = getArticleIdsExceedingDeleteFrequency(
+      comments,
+      DeleteFrequency.DAY_3,
+      now,
+    );
+
+    expect(keysToDelete).to.deep.equal(['b', 'c', 'd', 'e', 'f', 'g']);
   });
 });

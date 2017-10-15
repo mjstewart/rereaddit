@@ -44,12 +44,14 @@ class Popup extends React.Component<{}, State> {
   }
 
   setSortedComments = (comments: Comment[]) => {
+    logging.log('setSortedComments');
     this.setState({ comments });
   }
 
   loadComments = async () => {
     try {
       const entries: CommentEntry = await repository.getAllBy((key, type) => type === StorageType.COMMENT);
+   
       const comments = reduce(
         entries,
         (acc: Comment[], value, key) => {
@@ -151,6 +153,7 @@ class Popup extends React.Component<{}, State> {
           <ViewingHistory
             comments={this.state.comments}
             setSortedComments={this.setSortedComments}
+            deleteArticle={this.deleteArticle}
           />
         </Container>
       </div>
