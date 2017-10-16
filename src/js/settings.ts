@@ -31,7 +31,7 @@ export const deleteFrequencyToDaysMap = new Map<DeleteFrequency, number>([
 ]);
 
 export const DEFAULT_UNREAD_COMMENT_COLOR = '#B3ECB7';
-export const DEFAULT_DELETE_FREQUENCY = DeleteFrequency.DAY_3;
+export const DEFAULT_DELETE_FREQUENCY = DeleteFrequency.DAY_2;
 
 export interface SettingKeys {
   defaultUnreadCommentColor: string;

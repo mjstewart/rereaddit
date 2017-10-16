@@ -14,9 +14,6 @@ import {
   deleteFrequencyToDaysMap,
 } from '@js/settings';
 
-// repository.deleteAll();
-repository.getAll().then(data => logging.logWithPayload('ALL STORAGE', data));
-
 /**
  * The first time the extension loads, default settings are saved, otherwise nothing
  * happens and existing settings are used.
@@ -58,7 +55,6 @@ repository.getAll().then(data => logging.logWithPayload('ALL STORAGE', data));
  * https://developer.chrome.com/extensions/runtime#event-onMessage
  */
 chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) => {
-  logging.log(`chrome.runtime.onMessage: ${message}`);
   switch (message.type) {
     case MessageType.GET_CURRENT_TAB_URL:
       getCurrentTabUrl(sendResponse);

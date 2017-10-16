@@ -5,83 +5,41 @@ import { Comment } from '@js/content-scripts/comments';
 import * as moment from 'moment';
 import * as sortby from 'lodash.sortby';
 import { sendMessage, MessageType } from '@js/messages';
+import { SortableField, SortDirection } from './Popup';
 
 interface Props {
   comments: Comment[];
-  setSortedComments: (comments: Comment[]) => void;
+  sortField: SortableField;
+  sortDirection: SortDirection;
+  sortComments: (field: SortableField, direction: SortDirection) => void;
   deleteArticle: (articleId: string) => Promise<void>;
 }
 
-// Values correspond to the property in each Comment to sort by.
-enum SortableColumn {
-  Title = 'title',
-  Sub = 'subreddit',
-  LastViewed = 'lastViewedTime',
-  UnreadCount = 'unreadCount',
-}
-
-enum Direction {
-  Ascending = 'ascending',
-  Descending = 'descending',
-}
-
 interface State {
-  column: SortableColumn;
-  direction: Direction;
+  sortColumn?: SortableField;
+  sortDirection?: SortDirection;
 }
 
 class ViewingHistory extends React.Component<Props, State> {
   constructor(props) {
     super(props);
-
-    // TODO: lift sort direction up to popup, it would be alot easier.
-    this.state = {
-      column: SortableColumn.UnreadCount,
-      direction: Direction.Descending,
-    };
   }
-
-  
 
   deleteArticle = (articleId: string) => () => this.props.deleteArticle(articleId);
 
-  handleSort = (clickedColumn: SortableColumn) => () => {
-    const { column, direction } = this.state;
-    const { setSortedComments } = this.props;
+  handleSort = (clickedColumn: SortableField) => () => {
+    const { sortField } = this.props;
 
-    if (clickedColumn !== column) {
-      this.setState({
-        column: clickedColumn,
-        direction: Direction.Ascending,
-      });
-
-      switch (clickedColumn) {
-        case SortableColumn.Title:
-          setSortedComments(sortby(this.props.comments, (c: Comment) => c.title.toLowerCase()));
-          break;
-        case SortableColumn.Sub:
-          setSortedComments(sortby(this.props.comments, [SortableColumn.Sub]));
-          break;
-        case SortableColumn.LastViewed:
-          setSortedComments(sortby(this.props.comments, [SortableColumn.LastViewed]));
-          break;
-        case SortableColumn.UnreadCount:
-          setSortedComments(sortby(this.props.comments, [SortableColumn.UnreadCount]));
-          break;
-      }
-      return;
+    if (clickedColumn !== sortField) {
+      this.props.sortComments(clickedColumn, SortDirection.Ascending);       
+    } else {
+      const direction = this.props.sortDirection === SortDirection.Ascending ? SortDirection.Descending : SortDirection.Ascending;
+      this.props.sortComments(clickedColumn, direction);
     }
-
-    // Reverse direction when the same column is clicked again.
-    this.setState({
-      direction: direction === Direction.Ascending ? Direction.Descending : Direction.Ascending,
-    });
-    this.props.setSortedComments(this.props.comments.reverse());
   }
 
   render() {
-    const { column, direction } = this.state;
-    const { comments } = this.props;
+    const { comments, sortField, sortDirection } = this.props;
     return (
       <div id="viewing-history">
         <Header as="h3" dividing>
@@ -94,27 +52,28 @@ class ViewingHistory extends React.Component<Props, State> {
               <Table.Row>
                 <Table.HeaderCell
                   width={7}
-                  sorted={column === SortableColumn.Title ? direction : undefined}
-                  onClick={this.handleSort(SortableColumn.Title)}>
+                  sorted={sortField === SortableField.Title ? sortDirection : undefined}
+                  onClick={this.handleSort(SortableField.Title)}>
                   Title
                 </Table.HeaderCell>
                 <Table.HeaderCell
                   width={1}
-                  sorted={column === SortableColumn.Sub ? direction : undefined}
-                  onClick={this.handleSort(SortableColumn.Sub)}>
+                  sorted={sortField === SortableField.Sub ? sortDirection : undefined}
+                  onClick={this.handleSort(SortableField.Sub)}>
                   Sub
                 </Table.HeaderCell>
                 <Table.HeaderCell
                   width={4}
-                  sorted={column === SortableColumn.LastViewed ? direction : undefined}
-                  onClick={this.handleSort(SortableColumn.LastViewed)}>
+                  sorted={sortField === SortableField.LastViewed ? sortDirection : undefined}
+                  onClick={this.handleSort(SortableField.LastViewed)}>
                   Last viewed
                 </Table.HeaderCell>
                 <Table.HeaderCell
                   width={2}
-                  sorted={column === SortableColumn.UnreadCount ? direction : undefined}
-                  onClick={this.handleSort(SortableColumn.UnreadCount)}>
-                  # Unread
+                  sorted={sortField === SortableField.UnreadCount ? sortDirection : undefined}
+                  onClick={this.handleSort(SortableField.UnreadCount)}
+                  title={'Estimation of the total unread comments'}>
+                  # Unread ?
                 </Table.HeaderCell>
                 <Table.HeaderCell width={2}>Unfollow</Table.HeaderCell>
               </Table.Row>
@@ -144,7 +103,6 @@ const shortenTitle = (title: string) => {
 };
 
 const openTab = (url: string) => () => {
-  logging.logWithPayload('openTab', url);
   sendMessage({ url, type: MessageType.OPEN_TAB });
 };
 
@@ -155,7 +113,7 @@ interface RowProps {
 }
 
 const Row: React.SFC<RowProps> = ({ comment, deleteArticle }) => {
-  const articleUrl = `https://www.reddit.com/r/${comment.subreddit}/comments/${comment.articleId}`;
+  const articleUrl = `https://www.reddit.com/r/${comment.subreddit}/comments/${comment.articleId}/?sort=new&limit=500`;
   const subredditRedirectUrl = `https://www.reddit.com/r/${comment.subreddit}`;
 
   return (

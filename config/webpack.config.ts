@@ -18,7 +18,6 @@ const config: CustomWebpackConfig = {
     popup: path.join(paths.VIEWS, 'popup/index.tsx'),
     background: path.join(paths.JS, 'background.ts'),
     comments: path.join(paths.JS, 'content-scripts', 'comments.ts'),
-    subreddit: path.join(paths.JS, 'content-scripts', 'subreddit.ts'),
   },
   output: {
     filename: '[name].js',

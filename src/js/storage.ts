@@ -16,6 +16,7 @@ import { deleteFrequencyToDaysMap, DeleteFrequency } from '@js/settings';
     "lastViewedTime": "Thu Oct 12 2017 17:38:41 GMT+1030 (Cen. Australia Daylight Time)",
     "tagline": "submitted 19 hours ago by user",
     "title": "some title",
+    "unread": 0,
     "type": "COMMENT"
   },
   "unreadCommentColor": {

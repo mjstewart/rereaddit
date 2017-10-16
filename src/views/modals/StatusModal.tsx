@@ -12,7 +12,7 @@ interface Props {
   type: ModalType;
 
   /**
-   * Notify that modal is closing incase parent needs to perform
+   * Notify that modal is closing in case parent needs to perform
    * any closing down operations.
    */
   onClose: () => void;

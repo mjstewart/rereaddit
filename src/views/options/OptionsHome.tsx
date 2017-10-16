@@ -103,7 +103,6 @@ class OptionsHome extends React.Component<{}, State> {
 
   deleteAllNonSettings = async () => {
     try {
-      logging.log('Popup deleteAllStorage');
       const deleted = await repository.deleteBy((key, type) => type !== StorageType.SETTING);
       if (deleted) {
         this.setState({ success: 'All history succesfully deleted' });
@@ -195,7 +194,6 @@ class OptionsHome extends React.Component<{}, State> {
           <Container textAlign="center">
             <Button basic color="red" size="tiny" onClick={this.onRestoreDefaults}>Restore Defaults</Button>
             <Button basic color="red" size="tiny" onClick={this.deleteAllNonSettings}>Delete History</Button>
-            <Button basic color="blue" size="tiny" onClick={this.wipe}>Debug delete all</Button>
           </Container>
           <Header as="h3" dividing>
             General

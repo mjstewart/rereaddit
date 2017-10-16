@@ -9,7 +9,6 @@
       "persistant": false
     },
     "page_action": {
-      // "default_icon": "icon.png",
       "default_popup": "popup.html",
       "default_title": "Track and manage unread reddit comments"
     },
@@ -23,11 +22,5 @@
         "matches": ["https://www.reddit.com/r/*/comments/*"],
         "js": ["comments.js"]
       }
-      // {
-      //   "matches": ["https://www.reddit.com/r/*"],
-      //   "exclude_matches": ["https://www.reddit.com/r/*/comments/*"],
-      //   // "css": ["styles.css"],
-      //   "js": ["subreddit.js"]
-      // }
     ]
   }

@@ -76,9 +76,6 @@ class StorageSettings extends React.Component<Props, {}> {
               <Button basic color="red" size="mini" onClick={this.props.deleteAllNonSettings}>
                 Delete
               </Button>
-              <Button basic color="blue" size="mini" onClick={this.viewStorage}>
-                View ({this.props.comments.length})
-              </Button>
             </Grid.Column>
           </Grid.Row>
           {this.showUnfollowThisArticle() ?

@@ -45,6 +45,7 @@ export type CommentEntry = {
     "lastViewedTime": "Thu Oct 12 2017 17:38:41 GMT+1030 (Cen. Australia Daylight Time)",
     "tagline": "submitted 19 hours ago by user",
     "title": "some title",
+    "unread": 0,
     "type": "COMMENT"
   }
  * 
@@ -66,10 +67,6 @@ const removeStyling = (child: HTMLElement) => (event: MouseEvent) => {
   child.style.cursor = null;
   child.title = '';
   child.onclick = () => false;
-
-  // remove the last class
-  // const classTokens = child.className.split(/\s+/).filter(x => x !== '');
-  // child.className = classTokens.slice(0, classTokens.length - 1).join(' ');
 };
 
 type GetResult = {
@@ -108,18 +105,20 @@ const articleMetaExtractor = async (): Promise<Meta> => {
   }
 };
 
+const addActionButtons = () => {
+  
+};
 
 window.addEventListener('load', async () => {
   try {
-    const meta = await articleMetaExtractor();
+    addActionButtons();
 
-    logging.logWithPayload('comments.ts meta data', meta);
+    const meta = await articleMetaExtractor();
 
     // See createCommentEntry comment for the structure, the key is the article id.
     type QueryResult = CommentEntry & UnreadCommentColorSetting;
-
     const queryResult = await repository.get<QueryResult>([meta.articleId, settingKeys.unreadCommentColor]);
-    logging.logWithPayload('article get partial query', queryResult);
+  
     if (!has(queryResult, meta.articleId)) {
       // First time viewing article
       const entry = createArticleEntry(meta);
@@ -136,7 +135,7 @@ window.addEventListener('load', async () => {
     const existingArticle = queryResult[meta.articleId];
     const lastViewedTime = moment(new Date(existingArticle.lastViewedTime));
 
-    logging.logWithPayload('existingArticle', existingArticle);
+    logging.logWithPayload('This is an existing article, now going to highlight any unread comments', existingArticle);
     const comments = document.getElementsByClassName('comment');
 
     for (let i = 0; i < comments.length; i = i + 1) {
@@ -152,18 +151,9 @@ window.addEventListener('load', async () => {
           child.onclick = removeStyling(child);
         });
       }
-
-      // comment.querySelectorAll('.usertext-body').forEach((child: HTMLElement) => {
-      //   child.style.backgroundColor = queryResult.unreadCommentColor.color;
-      //   child.style.cursor = 'pointer';
-      //   child.title = 'Click to unread comment';
-      //   child.onclick = removeStyling(child);
-      // });
     }
 
-    // Update the last visit time and any other meta data such as original post time
-    // as reddit servers autoupdate the time. This also sets the article as completely read ready 
-    // for the next visit to track new unread comments.
+    // reset the last visit info so we track any unread comments from now.
     repository.save(createArticleEntry(meta));
   } catch (e) {
     logging.log(`Could not extract meta data for article: ${e}`);

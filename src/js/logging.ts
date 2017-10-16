@@ -6,6 +6,7 @@ export const logIfError = (message: string) => {
   }
 };
 
+// Toggle on/off in webpack config.
 declare const LOGGING: boolean;
 
 export const logWithPayload = <T extends {}>(message: string, payload: T) => {
