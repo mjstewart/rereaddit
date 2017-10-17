@@ -1,12 +1,12 @@
 .follow-action {
   font-family: 'arial';
-  letter-spacing: 1.2px;
+  letter-spacing: 1.1px;
   padding: 5px;
   margin: 5px;
   border-radius: 3px;
-  width: 80px;
+  width: 100px;
   background-color: white;
-  color: black;
+  color: black !important;
   transition: background-color 0.5s ease;
 }
 
@@ -16,7 +16,6 @@
 
 .follow:hover {
   background-color: rgb(131, 223, 131);
-
 }
 
 .unfollow {

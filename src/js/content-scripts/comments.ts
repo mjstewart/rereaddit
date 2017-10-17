@@ -152,6 +152,8 @@ window.addEventListener('load', async () => {
       [meta.articleId, settingKeys.unreadCommentColor, settingKeys.autoFollow],
     );
 
+    logging.logWithPayload(`comments.ts load query`, queryResult);
+
     const autoFollowEnabled = has(queryResult, settingKeys.autoFollow) && queryResult.autoFollow.follow;
 
     if (!has(queryResult, meta.articleId)) {
