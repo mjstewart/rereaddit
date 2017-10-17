@@ -1,7 +1,7 @@
 const githubLogo = require('@src/img/GitHub-Mark-32px.png');
 
 import * as React from 'react';
-import { Grid, Header, Container, Icon, Form, Button, Dropdown } from 'semantic-ui-react';
+import { Grid, Header, Container, Icon, Form, Button, Dropdown, Checkbox } from 'semantic-ui-react';
 import { repository, StorageType } from '@js/storage';
 import * as logging from '@js/logging';
 import StatusModal from '@views/modals/StatusModal';
@@ -17,15 +17,20 @@ import {
   makeDefaultUnreadColorSetting,
   DEFAULT_UNREAD_COMMENT_COLOR,
   DEFAULT_DELETE_FREQUENCY,
+  DEFAULT_AUTO_FOLLOW,
   DeleteFrequency,
   DeleteFrequencySetting,
   makeDeleteFrequencySetting,
   makeDefaultDeleteFrequencySetting,
+  AutoFollowSetting,
+  makeAutoFollowSetting,
+  makeDefaultAutoFollowSetting,
 } from '@js/settings';
 
 interface State {
   unreadCommentColor: string;
   selectedDeleteFrequency?: DeleteFrequencyOption;
+  autoFollow: boolean;
   success?: string;
   error?: string;
 }
@@ -73,17 +78,19 @@ class OptionsHome extends React.Component<{}, State> {
 
     this.state = {
       unreadCommentColor: DEFAULT_UNREAD_COMMENT_COLOR,
+      autoFollow: DEFAULT_AUTO_FOLLOW,
     };
   }
 
   componentDidMount() {
-    type QueryResult = UnreadCommentColorSetting & DeleteFrequencySetting;
+    type QueryResult = UnreadCommentColorSetting & DeleteFrequencySetting & AutoFollowSetting;
     // Initialise any settings that are already in storage.
-    repository.get<QueryResult>([settingKeys.unreadCommentColor, settingKeys.deleteFrequency])
+    repository.get<QueryResult>([settingKeys.unreadCommentColor, settingKeys.deleteFrequency, settingKeys.autoFollow])
       .then((result: QueryResult) => {
         this.setState({
           unreadCommentColor: result.unreadCommentColor.color,
           selectedDeleteFrequency: this.getDeleteFrequencyOption(result.deleteFrequency.frequency),
+          autoFollow: result.autoFollow.follow,
         });
       })
       .catch((error) => {
@@ -135,10 +142,12 @@ class OptionsHome extends React.Component<{}, State> {
     try {
       await repository.save(makeDefaultUnreadColorSetting());
       await repository.save(makeDefaultDeleteFrequencySetting());
+      await repository.save(makeDefaultAutoFollowSetting());
 
       this.setState({
         unreadCommentColor: DEFAULT_UNREAD_COMMENT_COLOR,
         selectedDeleteFrequency: this.getDeleteFrequencyOption(DEFAULT_DELETE_FREQUENCY),
+        autoFollow: DEFAULT_AUTO_FOLLOW,
       });
     } catch (e) {
       this.setState({ error: 'Error restoring defaults' });
@@ -155,6 +164,16 @@ class OptionsHome extends React.Component<{}, State> {
     try {
       await repository.save(makeDeleteFrequencySetting(frequency));
       this.setState({ selectedDeleteFrequency: this.getDeleteFrequencyOption(frequency) });
+    } catch (e) {
+      this.setState({ error: 'Error saving delete frequency to storage' });
+    }
+  });
+
+  onAutoSettingChange = (async (e, { checked }) => {
+    logging.logWithPayload('onAutoSettingChange data=', checked);
+    try {
+      await repository.save(makeAutoFollowSetting(checked));
+      this.setState({ autoFollow: checked });
     } catch (e) {
       this.setState({ error: 'Error saving delete frequency to storage' });
     }
@@ -213,11 +232,16 @@ class OptionsHome extends React.Component<{}, State> {
                 onChange={this.onDeleteFrequencyChange} />
             </span>
           </div>
+          <div className="setting">
+            <Checkbox label="Auto follow articles I visit"
+              checked={this.state.autoFollow}
+              onChange={this.onAutoSettingChange}
+            />
+          </div>
         </Container>
       </div>
     );
   }
 }
-
 
 export default OptionsHome;

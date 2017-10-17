@@ -20,7 +20,8 @@
     "content_scripts": [
       {
         "matches": ["https://www.reddit.com/r/*/comments/*"],
-        "js": ["comments.js"]
+        "js": ["comments.js"],
+        "css": ["comments.css"]
       }
     ]
   }

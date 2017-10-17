@@ -2,7 +2,7 @@ import { MessageType, sendMessage } from '@js/messages';
 import * as logging from '@js/logging';
 import * as isempty from 'lodash.isempty';
 import * as has from 'lodash.has';
-import { UnreadCommentColorSetting, settingKeys } from '@js/settings';
+import { UnreadCommentColorSetting, settingKeys, AutoFollowSetting } from '@js/settings';
 import * as moment from 'moment';
 import {
   repository,
@@ -105,37 +105,85 @@ const articleMetaExtractor = async (): Promise<Meta> => {
   }
 };
 
-const addActionButtons = () => {
+const addActionButtons = (meta: Meta, buttons: 'follow' | 'unfollow') => {
+  const root = document.getElementsByClassName('top-matter')[0];
   
+  const follow = document.createElement('button');
+  follow.innerHTML = 'Follow';
+  follow.className = 'follow-action follow';
+  follow.style.display = buttons === 'follow' ? null : 'none';
+  follow.title = 'Click to start tracking unread comments';
+  follow.onclick = async (e) => {
+    try {
+      await repository.save(createArticleEntry(meta));
+      follow.style.display = 'none';
+      unfollow.style.display = null;
+    } catch (e) {
+      alert('Unable to follow this article, try again');
+    } 
+  };
+
+  const unfollow = document.createElement('button');
+  unfollow.innerHTML = 'Unfollow';
+  unfollow.className = 'follow-action unfollow';
+  unfollow.style.display = buttons === 'unfollow' ? null : 'none';
+  follow.title = 'Click to stop following unread comments';
+  unfollow.onclick = async (e) => {
+    try {
+      await repository.deleteKeys([meta.articleId]);
+      unfollow.style.display = 'none';
+      follow.style.display = null;
+    } catch (e) {
+      alert('Unable to unfollow this article, try again');
+    }
+  };
+
+  root.appendChild(follow);
+  root.appendChild(unfollow);
 };
 
 window.addEventListener('load', async () => {
   try {
-    addActionButtons();
-
     const meta = await articleMetaExtractor();
 
     // See createCommentEntry comment for the structure, the key is the article id.
-    type QueryResult = CommentEntry & UnreadCommentColorSetting;
-    const queryResult = await repository.get<QueryResult>([meta.articleId, settingKeys.unreadCommentColor]);
-  
+    type QueryResult = CommentEntry & UnreadCommentColorSetting & AutoFollowSetting;
+    const queryResult = await repository.get<QueryResult>(
+      [meta.articleId, settingKeys.unreadCommentColor, settingKeys.autoFollow],
+    );
+
+    const autoFollowEnabled = has(queryResult, settingKeys.autoFollow) && queryResult.autoFollow.follow;
+
     if (!has(queryResult, meta.articleId)) {
       // First time viewing article
       const entry = createArticleEntry(meta);
-      logging.logWithPayload(`First time viewing ${meta.title}, saving new comment entry to storage`, entry);
-      try {
-        await repository.save(entry);
-      } catch (e) {
-        logging.log(e);
+      
+      if (autoFollowEnabled) {
+        try {
+          await repository.save(entry);
+          logging.logWithPayload(`Auto following enabled and first time viewing ${meta.title}. Auto saved this article to storage`, entry);
+        } catch (e) {
+          logging.log(e);
+        }
+      } else {
+        // provide manual option to follow.
+        logging.log(`First time viewing ${meta.title}. Manual following enabled - adding follow button`);
+        addActionButtons(meta, 'follow');
       }
       return;
+    }
+
+    if (!autoFollowEnabled) {
+      // Already following so provide the option to unfollow.
+      logging.log('Existing article. Manual following enabled - adding unfollow button');
+      addActionButtons(meta, 'unfollow');
     }
 
     // Get the existing article and highlight any new comments which occur after the last viewed time.
     const existingArticle = queryResult[meta.articleId];
     const lastViewedTime = moment(new Date(existingArticle.lastViewedTime));
 
-    logging.logWithPayload('This is an existing article, now going to highlight any unread comments', existingArticle);
+    logging.logWithPayload('Existing article. Now highlighting any unread comments', existingArticle);
     const comments = document.getElementsByClassName('comment');
 
     for (let i = 0; i < comments.length; i = i + 1) {

@@ -12,6 +12,8 @@ import {
   DeleteFrequency,
   UnreadCommentColorSetting,
   deleteFrequencyToDaysMap,
+  AutoFollowSetting,
+  makeDefaultAutoFollowSetting,
 } from '@js/settings';
 
 /**
@@ -20,18 +22,24 @@ import {
  */
 (async function initSettings() {
   try {
-    type QueryResult = UnreadCommentColorSetting & DeleteFrequencySetting;
-    const result = await repository.get<QueryResult>([settingKeys.unreadCommentColor, settingKeys.deleteFrequency]);
+    type QueryResult = UnreadCommentColorSetting & DeleteFrequencySetting & AutoFollowSetting;
+    const result = await repository.get<QueryResult>(
+      [settingKeys.unreadCommentColor, settingKeys.deleteFrequency, settingKeys.autoFollow],
+    );
     const comments: CommentEntry = await repository.getAllBy((key, type) => type === StorageType.COMMENT);
 
     if (isempty(result.unreadCommentColor)) {
       await repository.save(makeDefaultUnreadColorSetting());
     }
 
+    if (isempty(result.autoFollow)) {
+      await repository.save(makeDefaultAutoFollowSetting());
+    }
+
     if (isempty(result.deleteFrequency)) {
       await repository.save(makeDefaultDeleteFrequencySetting());
     } else {
-      // Delete articles that exceed delete frequency visit time 
+      // Delete articles that exceed delete frequency visit time to prevent storage overload.
       const keysToDelete = getArticleIdsExceedingDeleteFrequency(
         comments,
         result.deleteFrequency.frequency,

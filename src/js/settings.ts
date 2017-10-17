@@ -32,11 +32,13 @@ export const deleteFrequencyToDaysMap = new Map<DeleteFrequency, number>([
 
 export const DEFAULT_UNREAD_COMMENT_COLOR = '#B3ECB7';
 export const DEFAULT_DELETE_FREQUENCY = DeleteFrequency.DAY_2;
+export const DEFAULT_AUTO_FOLLOW = false;
 
 export interface SettingKeys {
   defaultUnreadCommentColor: string;
   unreadCommentColor: string;
   deleteFrequency: string;
+  autoFollow: string;
 }
 
 /**
@@ -46,6 +48,7 @@ export const settingKeys: SettingKeys = {
   defaultUnreadCommentColor: 'defaultUnreadCommentColor',
   unreadCommentColor: 'unreadCommentColor',
   deleteFrequency: 'deleteFrequency',
+  autoFollow: 'autoFollow',
 };
 
 /**
@@ -91,5 +94,27 @@ export const makeDefaultDeleteFrequencySetting = (): DeleteFrequencySetting => (
   deleteFrequency: {
     type: StorageType.SETTING,
     frequency: DEFAULT_DELETE_FREQUENCY,
+  },
+});
+
+
+export type AutoFollowSetting = {
+  autoFollow: {
+    type: StorageType.SETTING,
+    follow: boolean,
+  };
+};
+
+export const makeAutoFollowSetting = (follow: boolean): AutoFollowSetting => ({
+  autoFollow: {
+    follow,
+    type: StorageType.SETTING,
+  },
+});
+
+export const makeDefaultAutoFollowSetting = (): AutoFollowSetting => ({
+  autoFollow: {
+    type: StorageType.SETTING,
+    follow: DEFAULT_AUTO_FOLLOW,
   },
 });

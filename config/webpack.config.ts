@@ -51,6 +51,7 @@ const config: CustomWebpackConfig = {
     }),
     new CopyWebpackPlugin([
       { from: path.join(paths.SRC, 'manifest.json'), to: paths.DIST },
+      { from: path.join(paths.SRC, 'styles', 'comments.css'), to: paths.DIST },
     ]),
     new webpack.DefinePlugin({
       'process.env': {
