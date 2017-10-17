@@ -11,12 +11,13 @@ import * as rules from './rules';
 
 const config: CustomWebpackConfig = {
   context: paths.SRC,
+  // devtool: 'cheap-module-eval-source-map',
   devtool: 'source-map',
   entry: {
-    options: path.join(paths.JS, 'options.ts'),
+    options: path.join(paths.VIEWS, 'options/index.tsx'),
+    popup: path.join(paths.VIEWS, 'popup/index.tsx'),
     background: path.join(paths.JS, 'background.ts'),
     comments: path.join(paths.JS, 'content-scripts', 'comments.ts'),
-    subreddit: path.join(paths.JS, 'content-scripts', 'subreddit.ts'),
   },
   output: {
     filename: '[name].js',
@@ -24,12 +25,12 @@ const config: CustomWebpackConfig = {
     publicPath: '/',
   },
   resolve: {
-    extensions: ['.ts', '.js', '.json', '.scss', '.css'],
+    extensions: ['.ts', '.tsx', '.js', '.json', '.scss', '.css'],
     alias: {
       '@src': paths.SRC,
       '@js': paths.JS,
       '@views': paths.VIEWS,
-      '@styles': paths.STYLES,
+      styles: paths.STYLES, // @ is missing as it messes with sass import syntax.
     },
   },
   module: {
@@ -40,29 +41,31 @@ const config: CustomWebpackConfig = {
       rules.html,
       rules.url,
       rules.sass,
+      rules.css,
     ],
   },
   plugins: [
     new CleanWebpackPlugin([paths.DIST], {
-      root: '/',
+      root: paths.PROJECT_ROOT,
       verbose: true,
     }),
     new CopyWebpackPlugin([
       { from: path.join(paths.SRC, 'manifest.json'), to: paths.DIST },
+      { from: path.join(paths.SRC, 'styles', 'comments.css'), to: paths.DIST },
     ]),
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify('development'),
       },
-      LOGGING: JSON.stringify(false),
+      LOGGING: JSON.stringify(true),
     }),
     new HtmlWebpackPlugin({
-      template: path.join(paths.VIEWS, 'options.html'),
+      template: path.join(paths.VIEWS, 'options/options.html'),
       filename: 'options.html',
       chunks: ['options'], // This says to only include the options.js script tag in options.html.
     }),
     new HtmlWebpackPlugin({
-      template: path.join(paths.VIEWS, 'popup.html'),
+      template: path.join(paths.VIEWS, 'popup/popup.html'),
       filename: 'popup.html',
       chunks: ['popup'],
     }),
