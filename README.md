@@ -8,6 +8,16 @@ all new comments posted after your last visit time are highlighted for easy iden
 The motivation for this extension is to provide a visual way to identify new comments. If you have ever tried to sort comments by 'new', you
 would have noticed new nested comments are hard to identify because reddit only sorts by root comments, not new children.
 
+# Install
+
+1. run `yarn run build:prod`
+2. Navigate to `chrome://extensions`
+3. Click Load unpacked extension and instruct chrome to load from the `dist` folder output by webpack 
+4. Extension is now installed!
+5. Optionally you can pack the extension and install that way.
+
+I may consider hosting on the chrome store.
+
 # Features
 
 - Highlight all unread comments since your last visit to a thread.

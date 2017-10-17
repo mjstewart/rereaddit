@@ -1,5 +1,5 @@
 {
-  "name": "reddit-extension-babel",
+  "name": "rereaddit",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
@@ -7,7 +7,8 @@
     "test": "yarn run clean && cross-env NODE_ENV=test mocha-webpack --colors --webpack-config config/webpack.config.ts  ./src/**/*-test.*",
     "test:watch": "yarn run clean && cross-env NODE_ENV=test mocha-webpack --watch --colors --webpack-config config/webpack.config.ts  ./src/**/*-test.*",
     "build:dev": "yarn run clean && webpack --config config/webpack.config.ts --display-error-details --progress --colors",
-    "build:prod": "yarn run clean && webpack -p --config config/webpack.config.production.ts --display-error-details --progress --colors",
+    "build:prod": "yarn run clean && webpack --config config/webpack.config.ts --display-error-details --progress --colors",
+    "build:prod-core": "yarn run clean && webpack -p --config config/webpack.config.production.ts --display-error-details --progress --colors",
     "start": "webpack-dev-server --config config/webpack.config.ts",
     "lint": "echo \"Error: no linting specified\" && exit 1",
     "clean": "rm -rf dist && rm -rf .tmp"

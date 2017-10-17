@@ -11,7 +11,6 @@ import * as rules from './rules';
 
 const config: CustomWebpackConfig = {
   context: paths.SRC,
-  // devtool: 'cheap-module-eval-source-map',
   devtool: 'source-map',
   entry: {
     options: path.join(paths.VIEWS, 'options/index.tsx'),
@@ -57,7 +56,7 @@ const config: CustomWebpackConfig = {
       'process.env': {
         NODE_ENV: JSON.stringify('development'),
       },
-      LOGGING: JSON.stringify(true),
+      LOGGING: JSON.stringify(false),
     }),
     new HtmlWebpackPlugin({
       template: path.join(paths.VIEWS, 'options/options.html'),
