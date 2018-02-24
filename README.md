@@ -3,10 +3,12 @@
 Is a chrome extension to track and manage unread reddit comments.
 
 This extension tracks your last visit time for each visited thread. The next time you visit the thread,
-all new comments posted after your last visit time are highlighted for easy identification. 
+all new comments posted since your last visit time are highlighted for easy identification (similar to reddit gold).
 
 The motivation for this extension is to provide a visual way to identify new comments. If you have ever tried to sort comments by 'new', you
 would have noticed new nested comments are hard to identify because reddit only sorts by root comments, not new children.
+
+[![Screen shot](https://github.com/mjstewart/rereaddit/blob/master/rereaddit_screen.png)](https://github.com/mjstewart/rereaddit/blob/master/rereaddit_screen.png "Screen shot")
 
 # Install
 
